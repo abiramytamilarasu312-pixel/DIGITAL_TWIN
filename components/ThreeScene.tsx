@@ -1,6 +1,6 @@
 
-import React, { Suspense, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { Suspense, useState, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import {
   OrbitControls,
   PerspectiveCamera,
@@ -14,6 +14,19 @@ import { X, Cpu, Activity, Thermometer, Zap, Wrench } from 'lucide-react';
 
 interface ThreeSceneProps {
   twinState: TwinState;
+}
+
+function SpindleRotation({ children, rpm }: any) {
+  const ref = useRef<any>(null)
+
+  useFrame((state, delta) => {
+    if (ref.current) {
+      const speed = (rpm || 0) * 0.01
+      ref.current.rotation.y += delta * speed
+    }
+  })
+
+  return <group ref={ref}>{children}</group>
 }
 
 export const ThreeScene: React.FC<ThreeSceneProps> = ({ twinState }) => {
@@ -136,12 +149,13 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({ twinState }) => {
 
           <Environment preset="studio" />
 
-          <MachineModel
-            twinState={twinState}
-            onSelectPart={setSelectedPart}
-            selectedPart={selectedPart}
-          />
-
+          <SpindleRotation rpm={twinState.telemetry?.rpm}>
+            <MachineModel
+              twinState={twinState}
+              onSelectPart={setSelectedPart}
+              selectedPart={selectedPart}
+  />
+</SpindleRotation>
           <Grid
             infiniteGrid
             fadeDistance={25}
