@@ -24,12 +24,15 @@ export const MachineModel: React.FC<MachineModelProps> = ({ twinState, onSelectP
   const alarmLampRef = useRef<Mesh>(null);
   const headMatRef = useRef<MeshStandardMaterial>(null);
   const machineGroupRef = useRef<Group>(null);
+  const workpieceRef = useRef<Mesh>(null);
   
   const [hovered, setHovered] = useState<string | null>(null);
+  const [cutPoints, setCutPoints] = useState<{x: number, z: number, y: number}[]>([]);
+  const lastPointRef = useRef<{x: number, z: number} | null>(null);
 
-  const HOME_Y = -1.2;      
-  const CLEARANCE_Y = -1.8; 
-  const DEPTH_Y = -2.6;     
+  const HOME_Y = -0.8;      
+  const CLEARANCE_Y = -0.95; 
+  const DEPTH_Y = -1.3;     
   
   useFrame((state, delta) => {
     const isConventional = twinState.machineType === 'CONVENTIONAL';
@@ -142,13 +145,15 @@ export const MachineModel: React.FC<MachineModelProps> = ({ twinState, onSelectP
         
         // Scale parameters for visualization
         const vFeed = (feedRate / 500) * 2; // Movement speed
-        const vDepth = Math.min(0.8, (depthOfCut / 5) * 0.8); // Penetration depth
+        const vDepth = Math.min(0.35, (depthOfCut / 5) * 0.35); // Penetration depth (never exceed)
         const vStep = (stepOver / 5) * 1.0; // Lateral movement
 
         const moveX = Math.sin(state.clock.elapsedTime * vFeed) * 0.8;
         const moveZ = Math.cos(state.clock.elapsedTime * vFeed * 0.5) * vStep;
         
-        currentBitY = CLEARANCE_Y - vDepth;
+        // Touch top and cut gradually
+        const penetration = Math.min(vDepth, (state.clock.elapsedTime % 10) * 0.05);
+        currentBitY = CLEARANCE_Y - penetration;
         currentTableX = moveX;
         currentTableY = moveZ;
       } else {
@@ -160,18 +165,47 @@ export const MachineModel: React.FC<MachineModelProps> = ({ twinState, onSelectP
           currentTableY = Math.cos(state.clock.elapsedTime * 0.4) * 0.4;
         } else if (t < 2.5) {
           const p = (t - 0.8) / 1.7;
-          currentBitY = lerp(CLEARANCE_Y, DEPTH_Y, p);
+          // Slowly and gradually due to depth
+          const maxDepth = Math.min(0.3, (twinState.manualControl.depthOfCut || 2) / 10);
+          currentBitY = lerp(CLEARANCE_Y, CLEARANCE_Y - maxDepth, p);
         } else if (t < 3.0) {
-          currentBitY = DEPTH_Y;
+          const maxDepth = Math.min(0.3, (twinState.manualControl.depthOfCut || 2) / 10);
+          currentBitY = CLEARANCE_Y - maxDepth;
         } else {
           const p = easeInOut((t - 3.0) / 1.0);
-          currentBitY = lerp(DEPTH_Y, HOME_Y, p);
+          const maxDepth = Math.min(0.3, (twinState.manualControl.depthOfCut || 2) / 10);
+          currentBitY = lerp(CLEARANCE_Y - maxDepth, HOME_Y, p);
         }
       }
 
       if (bitRef.current) bitRef.current.position.y = currentBitY;
       if (tableXRef.current) tableXRef.current.position.x = currentTableX;
       if (tableYRef.current) tableYRef.current.position.z = currentTableY;
+      
+      if (workpieceRef.current) {
+        const isCuttingZone =
+          currentBitY < CLEARANCE_Y &&
+          Math.abs(currentTableX) < 0.9 &&
+          Math.abs(currentTableY) < 0.9;
+
+        if (isCuttingZone) {
+          workpieceRef.current.scale.y = Math.max(0.55, workpieceRef.current.scale.y - delta * 0.02);
+          workpieceRef.current.position.y = 0.3 - (1 - workpieceRef.current.scale.y) * 0.15;
+          
+          // Add cut points for visualization
+          const dist = lastPointRef.current ? Math.sqrt(Math.pow(currentTableX - lastPointRef.current.x, 2) + Math.pow(currentTableY - lastPointRef.current.z, 2)) : 1;
+          if (dist > 0.05) {
+            setCutPoints(prev => [...prev, { x: -currentTableX, z: -currentTableY, y: 0.31 }].slice(-200));
+            lastPointRef.current = { x: currentTableX, z: currentTableY };
+          }
+        }
+      }
+    } else {
+      // Not running, clear cut points if reset
+      if (twinState.status === 'IDLE' && cutPoints.length > 0) {
+        setCutPoints([]);
+        lastPointRef.current = null;
+      }
     }
 
     // Alarm Blinking & Pulsing
@@ -271,10 +305,18 @@ export const MachineModel: React.FC<MachineModelProps> = ({ twinState, onSelectP
             ))}
 
             <group position={[0, 0.5, 0]}>
-              <mesh position={[0, 0.3, 0]} castShadow>
+              <mesh ref={workpieceRef} position={[0, 0.3, 0]} castShadow>
                 <boxGeometry args={[1.2, 0.6, 1.2]} />
                 <meshStandardMaterial color="#cbd5e1" metalness={0.3} roughness={0.6} />
               </mesh>
+              
+              {/* Cutting Path Visualization */}
+              {cutPoints.map((p, i) => (
+                <mesh key={i} position={[p.x, p.y, p.z]}>
+                  <boxGeometry args={[0.12, 0.01, 0.12]} />
+                  <meshStandardMaterial color="#94a3b8" metalness={0.5} roughness={0.2} transparent opacity={0.6} />
+                </mesh>
+              ))}
               {/* Vise / Clamps */}
               <mesh position={[0, 0.1, 0.7]}>
                 <boxGeometry args={[1.4, 0.2, 0.2]} />

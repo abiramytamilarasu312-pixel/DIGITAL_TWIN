@@ -149,13 +149,11 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({ twinState }) => {
 
           <Environment preset="studio" />
 
-          <SpindleRotation rpm={twinState.telemetry?.rpm}>
-            <MachineModel
-              twinState={twinState}
-              onSelectPart={setSelectedPart}
-              selectedPart={selectedPart}
-  />
-</SpindleRotation>
+          <MachineModel
+            twinState={twinState}
+            onSelectPart={setSelectedPart}
+            selectedPart={selectedPart}
+          />
           <Grid
             infiniteGrid
             fadeDistance={25}

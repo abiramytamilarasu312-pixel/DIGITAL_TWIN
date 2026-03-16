@@ -82,6 +82,9 @@ export interface ManualControlState {
   gCodeProgram: string;
   isExecutingGCode: boolean;
   currentLine: number;
+  targetX: number;
+  targetY: number;
+  targetZ: number;
 }
 
 export interface ConventionalMillingState {

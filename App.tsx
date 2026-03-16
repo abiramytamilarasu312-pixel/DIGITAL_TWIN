@@ -180,7 +180,10 @@ const INITIAL_STATE: TwinState = {
     coolantEnabled: false,
     gCodeProgram: '(Sample G-Code)\nG21 (Metric)\nG90 (Absolute)\nM03 S1200 (Spindle ON)\nG00 X0 Y0 Z5 (Rapid to start)\nG01 Z-1.5 F100 (Plunge)\nG01 X50 Y0 F300 (Cut line)\nG01 X50 Y50\nG01 X0 Y50\nG01 X0 Y0\nG00 Z5 (Retract)\nM05 (Spindle OFF)\nM30 (End)',
     isExecutingGCode: false,
-    currentLine: 0
+    currentLine: 0,
+    targetX: 0,
+    targetY: 0,
+    targetZ: 0
   },
   conventionalMilling: {
     spindleSpeed: 110,
@@ -686,7 +689,7 @@ useEffect(() => {
 
   useEffect(() => {
     const { telemetry, config, status, mode } = twinState;
-    if (status === 'RUNNING' || mode === 'OFFLINE_CSV' || mode === 'SIMULATED') {
+    if (status === 'RUNNING' && (mode === 'SIMULATED' || mode === 'OFFLINE_CSV' || mode === 'PREDICTED_SIMULATION')) {
       syncToThingSpeak(telemetry, config.thingSpeakKey);
     }
   }, [twinState.telemetry, twinState.config.thingSpeakKey, twinState.status, twinState.mode, syncToThingSpeak]);
@@ -726,7 +729,7 @@ useEffect(() => {
     // We keep history as per user request
     // setHistory([]); 
 
-    if (stateRef.current.mode === 'SIMULATED' || stateRef.current.mode === 'OFFLINE_CSV') {
+    if (stateRef.current.mode === 'SIMULATED' || stateRef.current.mode === 'OFFLINE_CSV' || stateRef.current.mode === 'PREDICTED_SIMULATION') {
       setTwinState(prev => ({
         ...prev,
         status: 'IDLE',
@@ -735,12 +738,22 @@ useEffect(() => {
         telemetry: { ...INITIAL_TELEMETRY, timestamp: Date.now() },
         materialTest: { ...prev.materialTest, isActive: false, startTime: null },
         manualControl: { ...prev.manualControl, isExecutingGCode: false, currentLine: 0 },
-        csvPlayback: prev.mode === 'OFFLINE_CSV'
-          ? { ...prev.csvPlayback, currentIndex: 0, isActive: false }
-          : prev.csvPlayback
+        csvPlayback: { ...prev.csvPlayback, currentIndex: 0, isActive: false },
+        predictedSimulation: { ...prev.predictedSimulation, isActive: false, currentIndex: 0 }
       }));
     } else {
       sendHardwareCommand('RESET_SYSTEM');
+      setTwinState(prev => ({
+        ...prev,
+        status: 'IDLE',
+        hasReceivedInput: false,
+        health: MachineHealth.HEALTHY,
+        telemetry: { ...INITIAL_TELEMETRY, timestamp: Date.now() },
+        materialTest: { ...prev.materialTest, isActive: false, startTime: null },
+        manualControl: { ...prev.manualControl, isExecutingGCode: false, currentLine: 0 },
+        csvPlayback: { ...prev.csvPlayback, isActive: false, currentIndex: 0 },
+        predictedSimulation: { ...prev.predictedSimulation, isActive: false, currentIndex: 0 }
+      }));
     }
   }, [sendHardwareCommand, twinState.telemetry.machineHealth]);
 
@@ -1280,7 +1293,7 @@ useEffect(() => {
     currentSessionRef.current = null;
   }
 
-  if (twinState.mode === 'SIMULATED' || twinState.mode === 'OFFLINE_CSV') {
+  if (twinState.mode === 'SIMULATED' || twinState.mode === 'OFFLINE_CSV' || twinState.mode === 'PREDICTED_SIMULATION') {
     setTwinState(prev => ({
       ...prev,
       status: nextStatus,
@@ -1292,6 +1305,14 @@ useEffect(() => {
       manualControl: {
         ...prev.manualControl,
         isExecutingGCode: nextStatus === 'RUNNING' ? prev.manualControl.isExecutingGCode : false
+      },
+      csvPlayback: {
+        ...prev.csvPlayback,
+        isActive: nextStatus === 'RUNNING'
+      },
+      predictedSimulation: {
+        ...prev.predictedSimulation,
+        isActive: nextStatus === 'RUNNING'
       }
     }));
   } else {
@@ -1316,10 +1337,10 @@ useEffect(() => {
           </div>
           <div>
             <h1 className="text-xl font-black text-slate-900 tracking-tighter uppercase italic">
-              Twin<span className="text-indigo-600">Core</span>
+              Digital<span className="text-indigo-600">Twin</span>
             </h1>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-              Digital CNC Twin
+              IoT Based Tool Health Monitoring
             </span>
           </div>
         </div>
