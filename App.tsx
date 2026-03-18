@@ -2,79 +2,15 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { TelemetryData, TwinState, MachineHealth, Material, ToolGrade, DiscoveredDevice } from './types';
+import { fetchThingSpeakData } from './services/thingspeak';
 const MACHINE_CONFIG = {
   POLLING_INTERVAL_MS: 1000
 };
 
-interface ThingSpeakFeed {
-  created_at: string;
-  entry_id: number;
-  field1: string;
-  field2: string;
-  field3: string;
-  field4: string;
-  field5: string;
-  field6: string;
-  field7: string;
-  field8?: string;
-}
-
-const fetchThingSpeakData = async (
-  channelId: string,
-  readApiKey: string
-): Promise<ThingSpeakFeed | null> => {
-  if (!channelId || channelId.trim() === '') {
-    console.error('ThingSpeak Fetch Error: channelId is missing');
-    return null;
-  }
-
-  if (!readApiKey || readApiKey.trim() === '') {
-    console.error('ThingSpeak Fetch Error: readApiKey is missing for private channel');
-    return null;
-  }
-
-  const url = `https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${encodeURIComponent(
-    readApiKey
-  )}&results=1`;
-
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { Accept: 'application/json' }
-    });
-
-    if (!response.ok) {
-      throw new Error(`ThingSpeak request failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.feeds || data.feeds.length === 0) {
-      return null;
-    }
-
-    const latest = data.feeds[0];
-
-    return {
-      created_at: latest.created_at,
-      entry_id: latest.entry_id,
-      field1: latest.field1 ?? '0',
-      field2: latest.field2 ?? '0',
-      field3: latest.field3 ?? '100',
-      field4: latest.field4 ?? '0',
-      field5: latest.field5 ?? '24',
-      field6: latest.field6 ?? '0',
-      field7: latest.field7 ?? '0',
-      field8: latest.field8
-    };
-  } catch (error) {
-    console.error('ThingSpeak Fetch Error:', error);
-    return null;
-  }
-};
 import {
   Wifi, Cloud, AlertCircle, X, ShieldAlert, AlertTriangle, Info
 } from 'lucide-react';
+import emailjs from 'emailjs-com';
 
 const MATERIALS: Material[] = [
   { id: 'al6061', name: 'Aluminum 6061', hardnessFactor: 0.7, thermalFactor: 1.5 },
@@ -156,7 +92,15 @@ const INITIAL_STATE: TwinState = {
     predictionData: [],
     wearThreshold: 95,
     estimatedTimeToWear: null,
-    currentIndex: 0
+    exactWearTimestamp: null,
+    estimatedOperationsRemaining: null,
+    operationCycleTime: 60,
+    currentIndex: 0,
+    workpieceDimensions: {
+      length: 100,
+      width: 100,
+      height: 50
+    }
   },
   materialTest: {
     isActive: false,
@@ -176,6 +120,7 @@ const INITIAL_STATE: TwinState = {
     depthOfCut: 1.5,
     lengthX: 100,
     lengthY: 100,
+    heightZ: 50,
     stepOver: 0.5,
     coolantEnabled: false,
     gCodeProgram: '(Sample G-Code)\nG21 (Metric)\nG90 (Absolute)\nM03 S1200 (Spindle ON)\nG00 X0 Y0 Z5 (Rapid to start)\nG01 Z-1.5 F100 (Plunge)\nG01 X50 Y0 F300 (Cut line)\nG01 X50 Y50\nG01 X0 Y50\nG01 X0 Y0\nG00 Z5 (Retract)\nM05 (Spindle OFF)\nM30 (End)',
@@ -183,7 +128,8 @@ const INITIAL_STATE: TwinState = {
     currentLine: 0,
     targetX: 0,
     targetY: 0,
-    targetZ: 0
+    targetZ: 0,
+    notificationEmails: []
   },
   conventionalMilling: {
     spindleSpeed: 110,
@@ -214,7 +160,8 @@ const INITIAL_STATE: TwinState = {
       forceY: 250,
       forceZ: 800,
       toolWear: 95,
-      soundLimit: 0.15
+      soundLimit: 0.15,
+      spindleLoadLimit: 85
     },
     thingSpeakKey: 'OFCVHUDM9J3Z4OT1',
     thingSpeakReadKey: 'Z5TU5X0BLUQUTTMD',
@@ -276,11 +223,16 @@ const generatePredictionData = (
   spindleSpeed: number,
   material: Material,
   toolGrade: ToolGrade,
-  wearThreshold: number
-): { data: TelemetryData[], estimatedTime: number } => {
+  wearThreshold: number,
+  vibrationThreshold: number,
+  soundThreshold: number,
+  spindleLoadThreshold: number,
+  operationCycleTime: number
+): { data: TelemetryData[], estimatedTime: number, exactTimestamp: number, operationsRemaining: number } => {
   const data: TelemetryData[] = [];
   let currentWear = 0;
   let time = 0;
+  const startTime = Date.now();
   
   const baseWearRate = 0.05; 
   const wearRate = baseWearRate * (feedRate / 200) * depthOfCut * (spindleSpeed / 800) * material.hardnessFactor / toolGrade.durabilityFactor;
@@ -290,21 +242,23 @@ const generatePredictionData = (
   
   const baseVibration = 0.08 + (spindleSpeed / 4000) * (feedRate / 400);
 
-  while (currentWear < wearThreshold + 2 && time < 1800) { 
+  while (time < 3600) { 
     const wear = currentWear;
     const temp = ambientTemp + (steadyStateTemp - ambientTemp) * (1 - Math.exp(-time / 30)); 
     const vib = baseVibration * (1 + (wear / 100) * 1.5) + (Math.random() * 0.01);
+    const sound = (vib * 0.4) + (Math.random() * 0.005);
+    const load = Math.min(100, (feedRate / 400) * depthOfCut * 15 * (1 + wear / 150));
     
     data.push({
-      timestamp: Date.now() + time * 1000,
+      timestamp: startTime + time * 1000,
       rpm: spindleSpeed,
       feedRate: feedRate,
-      spindleLoad: Math.min(100, (feedRate / 400) * depthOfCut * 15 * (1 + wear / 150)),
+      spindleLoad: load,
       vibration: vib,
-      vibrationAlert: vib > 0.4,
+      vibrationAlert: vib > vibrationThreshold,
       machineHealth: Math.max(0, 100 - wear),
-      noiseLevel: (vib * 0.4) + (Math.random() * 0.005),
-      noiseAlarm: false,
+      noiseLevel: sound,
+      noiseAlarm: sound > soundThreshold,
       temperature: temp,
       toolWear: wear,
       current: (spindleSpeed / 1200) * 4 + (feedRate / 150),
@@ -316,13 +270,18 @@ const generatePredictionData = (
       }
     });
     
+    if (wear >= wearThreshold || vib >= vibrationThreshold || sound >= soundThreshold || load >= spindleLoadThreshold) {
+      break;
+    }
+
     currentWear += wearRate;
     time += 1; 
-    
-    if (currentWear >= wearThreshold) break;
   }
   
-  return { data, estimatedTime: time };
+  const exactTimestamp = startTime + time * 1000;
+  const operationsRemaining = Math.floor(time / Math.max(1, operationCycleTime));
+  
+  return { data, estimatedTime: time, exactTimestamp, operationsRemaining };
 };
 
 const App: React.FC = () => {
@@ -375,6 +334,29 @@ useEffect(() => {
     };
 
     setNotifications(prev => [newNotif, ...prev].slice(0, 5));
+
+    // Send Email Notification if critical or warning
+    if ((type === 'CRITICAL' || type === 'WARNING') && twinState.manualControl.notificationEmails.length > 0) {
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+      const userId = import.meta.env.VITE_EMAILJS_USER_ID;
+
+      if (serviceId && templateId && userId) {
+        twinState.manualControl.notificationEmails.forEach(email => {
+          emailjs.send(serviceId, templateId, {
+            to_email: email,
+            alert_type: type,
+            category: category,
+            message: message,
+            machine_name: twinState.name,
+            timestamp: new Date(now).toLocaleString()
+          }, userId).catch(err => console.error('Email Notification Error:', err));
+        });
+      } else {
+        console.warn('EmailJS configuration missing. Please set VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID, and VITE_EMAILJS_USER_ID in environment variables.');
+      }
+    }
+
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== newNotif.id));
     }, 8000);
@@ -585,15 +567,20 @@ useEffect(() => {
 }, [addNotification]);
 
   const startPredictedSimulation = useCallback(() => {
-    const { feedRate, depthOfCut, spindleSpeed, material, toolGrade, wearThreshold } = stateRef.current.predictedSimulation;
+    const { feedRate, depthOfCut, spindleSpeed, material, toolGrade, wearThreshold, operationCycleTime } = stateRef.current.predictedSimulation;
+    const { thresholds } = stateRef.current.config;
     
-    const { data, estimatedTime } = generatePredictionData(
+    const { data, estimatedTime, exactTimestamp, operationsRemaining } = generatePredictionData(
       feedRate,
       depthOfCut,
       spindleSpeed,
       material,
       toolGrade,
-      wearThreshold
+      wearThreshold,
+      thresholds.vibrationRms,
+      thresholds.soundLimit,
+      thresholds.spindleLoadLimit,
+      operationCycleTime
     );
 
     setTwinState(s => ({
@@ -606,6 +593,8 @@ useEffect(() => {
         isActive: true,
         predictionData: data,
         estimatedTimeToWear: estimatedTime,
+        exactWearTimestamp: exactTimestamp,
+        estimatedOperationsRemaining: operationsRemaining,
         currentIndex: 0
       }
     }));
@@ -615,19 +604,32 @@ useEffect(() => {
   }, [addNotification]);
 
   const handleSetMode = useCallback((mode: TwinState['mode']) => {
+    if (mode === 'ESP32' && (!stateRef.current.config.thingSpeakChannelId || stateRef.current.config.thingSpeakChannelId.trim() === '')) {
+      addNotification('WARNING', 'SYSTEM', 'ThingSpeak Channel ID is missing. Please configure it in the Setup tab.');
+    }
     setTwinState(s => ({
       ...s,
       mode,
       status: (mode === 'OFFLINE_CSV' || mode === 'PREDICTED_SIMULATION') ? 'IDLE' : s.status
     }));
-  }, []);
+  }, [addNotification]);
 
   const handleSave = useCallback(() => {
     const stateToSave = {
       config: stateRef.current.config,
       manualControl: stateRef.current.manualControl,
       materialTest: stateRef.current.materialTest,
-      conventionalMilling: stateRef.current.conventionalMilling
+      conventionalMilling: stateRef.current.conventionalMilling,
+      predictedSimulation: {
+        feedRate: stateRef.current.predictedSimulation.feedRate,
+        depthOfCut: stateRef.current.predictedSimulation.depthOfCut,
+        spindleSpeed: stateRef.current.predictedSimulation.spindleSpeed,
+        material: stateRef.current.predictedSimulation.material,
+        toolGrade: stateRef.current.predictedSimulation.toolGrade,
+        wearThreshold: stateRef.current.predictedSimulation.wearThreshold,
+        operationCycleTime: stateRef.current.predictedSimulation.operationCycleTime,
+        workpieceDimensions: stateRef.current.predictedSimulation.workpieceDimensions
+      }
     };
     localStorage.setItem('twin_core_config', JSON.stringify(stateToSave));
     addNotification('INFO', 'SYSTEM', 'Configuration saved to local storage');
@@ -762,10 +764,16 @@ useEffect(() => {
 
     const pollThingSpeak = async () => {
       const channelId = twinState.config.thingSpeakChannelId;
-     const data = await fetchThingSpeakData(
-       channelId,
-       twinState.config.thingSpeakReadKey || ''
-     );
+      
+      if (!channelId || channelId.trim() === '') {
+        setTwinState(s => ({ ...s, cloudSync: 'ERROR' }));
+        return;
+      }
+
+      const data = await fetchThingSpeakData(
+        channelId,
+        twinState.config.thingSpeakReadKey || ''
+      );
 
       if (data) {
         // REAL CHANNEL MAPPING:
@@ -846,7 +854,12 @@ useEffect(() => {
           config: { ...s.config, ...parsed.config },
           manualControl: { ...s.manualControl, ...parsed.manualControl },
           materialTest: { ...s.materialTest, ...parsed.materialTest },
-          conventionalMilling: { ...s.conventionalMilling, ...parsed.conventionalMilling }
+          conventionalMilling: { ...s.conventionalMilling, ...parsed.conventionalMilling },
+          predictedSimulation: parsed.predictedSimulation ? { 
+            ...s.predictedSimulation, 
+            ...parsed.predictedSimulation,
+            workpieceDimensions: parsed.predictedSimulation.workpieceDimensions || s.predictedSimulation.workpieceDimensions
+          } : s.predictedSimulation
         }));
 
         setTimeout(() => {
@@ -864,7 +877,17 @@ useEffect(() => {
         config: twinState.config,
         manualControl: twinState.manualControl,
         materialTest: twinState.materialTest,
-        conventionalMilling: twinState.conventionalMilling
+        conventionalMilling: twinState.conventionalMilling,
+        predictedSimulation: {
+          feedRate: twinState.predictedSimulation.feedRate,
+          depthOfCut: twinState.predictedSimulation.depthOfCut,
+          spindleSpeed: twinState.predictedSimulation.spindleSpeed,
+          material: twinState.predictedSimulation.material,
+          toolGrade: twinState.predictedSimulation.toolGrade,
+          wearThreshold: twinState.predictedSimulation.wearThreshold,
+          operationCycleTime: twinState.predictedSimulation.operationCycleTime,
+          workpieceDimensions: twinState.predictedSimulation.workpieceDimensions
+        }
       };
       localStorage.setItem('twin_core_config', JSON.stringify(stateToSave));
     }, 2000);
@@ -939,6 +962,7 @@ useEffect(() => {
           }
 
           const thresholds = prev.config.thresholds;
+          const enabledSensors = prev.config.enabledSensors;
           setHistory(h => [...h, nextTele].slice(-50));
 
           if (prev.status === 'RUNNING' && !activeAlarm) {
@@ -958,12 +982,29 @@ useEffect(() => {
                 message: `CSV replay limit: Temperature reached ${(nextTele.temperature || 0).toFixed(1)}°C`,
                 recommendations: ['Check cooling']
               };
-            } else if ((nextTele.vibration || 0) > thresholds.badRms) {
+            } else if (enabledSensors.vibration && nextTele.vibration > thresholds.vibrationRms) {
               alarm = {
                 type: 'CRITICAL',
                 category: 'VIBRATION',
                 message: `CSV replay limit: Vibration RMS reached ${(nextTele.vibration || 0).toFixed(2)}`,
-                recommendations: ['Inspect tool']
+                recommendations: [
+                  'Inspect tool condition and seating',
+                  'Check workholding stability',
+                  'Verify spindle speed and feed rate alignment',
+                  'Check for loose mechanical components'
+                ]
+              };
+            } else if (enabledSensors.spindleLoad && (nextTele.spindleLoad || 0) > thresholds.spindleLoadLimit) {
+              alarm = {
+                type: 'CRITICAL',
+                category: 'LOAD',
+                message: `CSV replay limit: Spindle load reached ${(nextTele.spindleLoad || 0).toFixed(1)}%`,
+                recommendations: [
+                  'Reduce feed rate immediately',
+                  'Inspect tool sharpness and wear',
+                  'Check depth of cut parameters',
+                  'Verify material hardness settings'
+                ]
               };
             } else if ((nextTele.noiseLevel || 0) > thresholds.soundLimit) {
               alarm = {
@@ -990,8 +1031,9 @@ useEffect(() => {
           if (
             (nextTele.temperature || 0) > thresholds.temperature * 0.8 ||
             (nextTele.toolWear || 0) > thresholds.toolWear * 0.8 ||
-            (nextTele.vibration || 0) > thresholds.goodRms ||
-            (nextTele.noiseLevel || 0) > thresholds.soundLimit * 0.8
+            (nextTele.vibration || 0) > thresholds.vibrationRms ||
+            (nextTele.noiseLevel || 0) > thresholds.soundLimit * 0.8 ||
+            (nextTele.spindleLoad || 0) > thresholds.spindleLoadLimit * 0.8
           ) {
             health = MachineHealth.WARNING;
           }
@@ -1000,7 +1042,8 @@ useEffect(() => {
             (nextTele.temperature || 0) > thresholds.temperature ||
             (nextTele.toolWear || 0) >= thresholds.toolWear ||
             (nextTele.vibration || 0) > thresholds.badRms ||
-            (nextTele.noiseLevel || 0) > thresholds.soundLimit
+            (nextTele.noiseLevel || 0) > thresholds.soundLimit ||
+            (nextTele.spindleLoad || 0) > thresholds.spindleLoadLimit
           ) {
             health = MachineHealth.CRITICAL;
           }
@@ -1169,12 +1212,29 @@ useEffect(() => {
               message: `Limit exceeded: Temperature reached ${(nextTele.temperature || 0).toFixed(1)}°C`,
               recommendations: ['Check cooling systems']
             };
-          } else if (enabledSensors.vibration && nextTele.vibration > thresholds.badRms) {
+          } else if (enabledSensors.vibration && nextTele.vibration > thresholds.vibrationRms) {
             alarm = {
               type: 'CRITICAL',
               category: 'VIBRATION',
               message: `Limit exceeded: Vibration RMS reached ${(nextTele.vibration || 0).toFixed(2)}`,
-              recommendations: ['Inspect tool seating']
+              recommendations: [
+                'Inspect tool seating and condition',
+                'Check cutting stability and workholding',
+                'Optimize spindle speed and feed rate',
+                'Verify machine structural integrity'
+              ]
+            };
+          } else if (enabledSensors.spindleLoad && nextTele.spindleLoad > thresholds.spindleLoadLimit) {
+            alarm = {
+              type: 'CRITICAL',
+              category: 'LOAD',
+              message: `Limit exceeded: Spindle load reached ${(nextTele.spindleLoad || 0).toFixed(1)}%`,
+              recommendations: [
+                'Reduce feed rate and depth of cut',
+                'Check tool condition for excessive wear',
+                'Verify material properties and hardness',
+                'Inspect spindle motor and drive system'
+              ]
             };
           } else if (nextTele.noiseLevel > thresholds.soundLimit) {
             alarm = {
@@ -1212,8 +1272,9 @@ useEffect(() => {
         if (
           nextTele.temperature > thresholds.temperature * 0.8 ||
           nextTele.toolWear > thresholds.toolWear * 0.8 ||
-          nextTele.vibration > thresholds.goodRms ||
-          nextTele.noiseLevel > thresholds.soundLimit * 0.8
+          nextTele.vibration > thresholds.vibrationRms ||
+          nextTele.noiseLevel > thresholds.soundLimit * 0.8 ||
+          (nextTele.spindleLoad || 0) > thresholds.spindleLoadLimit * 0.8
         ) {
           health = MachineHealth.WARNING;
         }
@@ -1222,7 +1283,8 @@ useEffect(() => {
           nextTele.temperature > thresholds.temperature ||
           nextTele.toolWear >= thresholds.toolWear ||
           nextTele.vibration > thresholds.badRms ||
-          nextTele.noiseLevel > thresholds.soundLimit
+          nextTele.noiseLevel > thresholds.soundLimit ||
+          (nextTele.spindleLoad || 0) > thresholds.spindleLoadLimit
         ) {
           health = MachineHealth.CRITICAL;
         }

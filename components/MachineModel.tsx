@@ -306,7 +306,17 @@ export const MachineModel: React.FC<MachineModelProps> = ({ twinState, onSelectP
 
             <group position={[0, 0.5, 0]}>
               <mesh ref={workpieceRef} position={[0, 0.3, 0]} castShadow>
-                <boxGeometry args={[1.2, 0.6, 1.2]} />
+                <boxGeometry args={[
+                  twinState.mode === 'PREDICTED_SIMULATION' 
+                    ? (twinState.predictedSimulation.workpieceDimensions?.length || 100) * 0.012 
+                    : (twinState.manualControl.lengthX || 100) * 0.012,
+                  twinState.mode === 'PREDICTED_SIMULATION'
+                    ? (twinState.predictedSimulation.workpieceDimensions?.height || 50) * 0.012
+                    : (twinState.manualControl.heightZ || 50) * 0.012,
+                  twinState.mode === 'PREDICTED_SIMULATION'
+                    ? (twinState.predictedSimulation.workpieceDimensions?.width || 100) * 0.012
+                    : (twinState.manualControl.lengthY || 100) * 0.012
+                ]} />
                 <meshStandardMaterial color="#cbd5e1" metalness={0.3} roughness={0.6} />
               </mesh>
               

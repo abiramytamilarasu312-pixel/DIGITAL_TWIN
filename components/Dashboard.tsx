@@ -36,7 +36,9 @@ LayoutDashboard,
 BarChart3,
 Database,
 Settings,
-Download
+Download,
+X,
+Box
 } from 'lucide-react';
 
 import {
@@ -84,7 +86,7 @@ interface DashboardProps {
   isScanning: boolean;
 }
 
-type TabType = 'TWIN' | 'STATUS' | 'HISTORY' | 'USER DATA' | 'SETUP' | 'PROGRAM' | 'PREDICTION';
+type TabType = 'TWIN' | 'STATUS' | 'HISTORY' | 'USER DATA' | 'SETUP' | 'PROGRAM' | 'PREDICTION' | 'NOTIFICATIONS';
 
 export const Dashboard: React.FC<DashboardProps> = ({
   twinState,
@@ -176,6 +178,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const handlePredictedSimulationChange = (key: string, value: any) => {
     const safeValue = typeof value === 'number' && isNaN(value) ? 0 : value;
     onConfigChange({ predictedSimulation: { [key]: safeValue } });
+  };
+
+  const handleWorkpieceDimensionChange = (dim: 'length' | 'width' | 'height', value: number) => {
+    const safeValue = isNaN(value) ? 0 : value;
+    onConfigChange({
+      predictedSimulation: {
+        workpieceDimensions: {
+          ...twinState.predictedSimulation.workpieceDimensions,
+          [dim]: safeValue
+        }
+      }
+    });
   };
 
   const startMaterialTest = () => {
@@ -1112,6 +1126,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     />
                   </label>
                   <button
+                    onClick={onSave}
+                    className="px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all flex items-center space-x-3 shadow-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                  >
+                    <Download size={14} />
+                    <span>SAVE PARAMETERS</span>
+                  </button>
+                  <button
                     onClick={() => {
                       onSetMode('PREDICTED_SIMULATION');
                       onStartPredictedSimulation();
@@ -1163,6 +1184,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm text-slate-900 focus:border-purple-500 outline-none"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center">
+                      <RefreshCw size={12} className="mr-2" /> Op. Cycle Time (s)
+                    </label>
+                    <input
+                      type="number"
+                      value={twinState.predictedSimulation.operationCycleTime}
+                      onChange={(e) => handlePredictedSimulationChange('operationCycleTime', parseInt(e.target.value))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm text-slate-900 focus:border-purple-500 outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-6">
@@ -1182,6 +1214,41 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           <span className="text-[10px] font-black uppercase block">{mat.name}</span>
                         </button>
                       ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-4 border-t border-slate-100">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center">
+                      <Box size={12} className="mr-2" /> Workpiece Dimensions (mm)
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-bold text-slate-400 uppercase">Length (X)</label>
+                        <input
+                          type="number"
+                          value={twinState.predictedSimulation.workpieceDimensions.length}
+                          onChange={(e) => handleWorkpieceDimensionChange('length', parseFloat(e.target.value))}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-bold text-slate-400 uppercase">Width (Y)</label>
+                        <input
+                          type="number"
+                          value={twinState.predictedSimulation.workpieceDimensions.width}
+                          onChange={(e) => handleWorkpieceDimensionChange('width', parseFloat(e.target.value))}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[8px] font-bold text-slate-400 uppercase">Height (Z)</label>
+                        <input
+                          type="number"
+                          value={twinState.predictedSimulation.workpieceDimensions.height}
+                          onChange={(e) => handleWorkpieceDimensionChange('height', parseFloat(e.target.value))}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-purple-500 outline-none"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1222,6 +1289,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <div className="text-[8px] font-black text-slate-400 uppercase mb-1">Wear Threshold</div>
                       <div className="text-xl font-black text-slate-900 font-mono">
                         {twinState.predictedSimulation.wearThreshold}%
+                      </div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-slate-100">
+                      <div className="text-[8px] font-black text-slate-400 uppercase mb-1">Exact Wear Time</div>
+                      <div className="text-xl font-black text-slate-900 font-mono">
+                        {twinState.predictedSimulation.exactWearTimestamp ? new Date(twinState.predictedSimulation.exactWearTimestamp).toLocaleTimeString() : '--'}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-slate-100">
+                      <div className="text-[8px] font-black text-slate-400 uppercase mb-1">Ops. Remaining</div>
+                      <div className="text-xl font-black text-slate-900 font-mono">
+                        {twinState.predictedSimulation.estimatedOperationsRemaining !== null ? twinState.predictedSimulation.estimatedOperationsRemaining : '--'}
                       </div>
                     </div>
                   </div>
@@ -1306,7 +1385,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center"><Move size={12} className="mr-2" /> Length X</label>
                       <input type="number" step="0.1" value={twinState.manualControl.lengthX || 0} onChange={(e) => handleManualControlChange('lengthX', parseFloat(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm text-slate-900 focus:border-indigo-500 outline-none" />
@@ -1314,6 +1393,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center"><Move size={12} className="mr-2" /> Length Y</label>
                       <input type="number" step="0.1" value={twinState.manualControl.lengthY || 0} onChange={(e) => handleManualControlChange('lengthY', parseFloat(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm text-slate-900 focus:border-indigo-500 outline-none" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center"><Move size={12} className="mr-2" /> Height Z</label>
+                      <input type="number" step="0.1" value={twinState.manualControl.heightZ || 0} onChange={(e) => handleManualControlChange('heightZ', parseFloat(e.target.value))} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm text-slate-900 focus:border-indigo-500 outline-none" />
                     </div>
                   </div>
 
@@ -1435,6 +1518,115 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         );
 
+      case 'NOTIFICATIONS':
+        return (
+          <div className="p-6 space-y-8 overflow-y-auto h-full scrollbar-hide">
+            <section className="bg-white p-8 rounded-[2.5rem] border border-slate-200 space-y-8 shadow-sm">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-red-50 rounded-2xl"><ShieldAlert size={24} className="text-red-600" /></div>
+                <div>
+                  <h2 className="text-lg font-black text-slate-900 uppercase tracking-widest">Email Notifications</h2>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Configure alerts for abnormal machine behavior</p>
+                </div>
+              </div>
+
+              <div className="space-y-6 max-w-2xl">
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center">
+                    <Database size={12} className="mr-2" /> Registered Email Addresses
+                  </label>
+                  
+                  <div className="flex space-x-2">
+                    <input 
+                      type="email" 
+                      id="emailInput"
+                      placeholder="Enter email address"
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm text-slate-900 focus:border-indigo-500 outline-none"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const input = e.currentTarget;
+                          const email = input.value.trim();
+                          if (email && !twinState.manualControl.notificationEmails.includes(email)) {
+                            handleManualControlChange('notificationEmails', [...twinState.manualControl.notificationEmails, email]);
+                            input.value = '';
+                          }
+                        }
+                      }}
+                    />
+                    <button 
+                      onClick={() => {
+                        const input = document.getElementById('emailInput') as HTMLInputElement;
+                        const email = input.value.trim();
+                        if (email && !twinState.manualControl.notificationEmails.includes(email)) {
+                          handleManualControlChange('notificationEmails', [...twinState.manualControl.notificationEmails, email]);
+                          input.value = '';
+                        }
+                      }}
+                      className="px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-lg"
+                    >
+                      Add Email
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {twinState.manualControl.notificationEmails.length === 0 ? (
+                      <p className="text-xs text-slate-400 italic p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
+                        No email addresses registered. Add one above to receive alerts.
+                      </p>
+                    ) : (
+                      twinState.manualControl.notificationEmails.map((email, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200 group hover:border-indigo-300 transition-all">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[10px] font-black">
+                              {index + 1}
+                            </div>
+                            <span className="text-sm font-bold text-slate-700">{email}</span>
+                          </div>
+                          <button 
+                            onClick={() => {
+                              const newEmails = twinState.manualControl.notificationEmails.filter((_, i) => i !== index);
+                              handleManualControlChange('notificationEmails', newEmails);
+                            }}
+                            className="p-2 text-slate-400 hover:text-red-500 transition-all"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-8 border-t border-slate-100 space-y-6">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notification Triggers</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { label: 'Abnormal Vibration', desc: 'Alert when RMS exceeds threshold' },
+                      { label: 'Excessive Sound', desc: 'Alert when noise level is too high' },
+                      { label: 'Tool Wear Warning', desc: 'Alert when wear exceeds 70%' },
+                      { label: 'Machine Critical State', desc: 'Alert on system failure or emergency stop' },
+                      { label: 'Temperature Warning', desc: 'Alert when spindle temperature is high' },
+                      { label: 'Tool Breakage Risk', desc: 'Alert when impact forces are detected' }
+                    ].map((trigger, i) => (
+                      <div key={i} className="flex items-start space-x-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                        <div className="mt-1">
+                          <div className="w-4 h-4 rounded bg-indigo-600 flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{trigger.label}</p>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase">{trigger.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -1442,13 +1634,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="h-full flex flex-col bg-slate-50 overflow-hidden">
-      <div className="flex items-center px-6 py-2 bg-white border-b border-slate-200 justify-between shadow-sm">
-        <div className="flex space-x-1">
-          {(['TWIN', 'STATUS', 'PROGRAM', 'PREDICTION', 'HISTORY', 'USER DATA', 'SETUP'] as TabType[]).map((tab) => (
+      <div className="flex flex-col md:flex-row items-center px-4 md:px-6 py-2 bg-white border-b border-slate-200 justify-between shadow-sm space-y-2 md:space-y-0">
+        <div className="flex space-x-1 overflow-x-auto scrollbar-hide w-full md:w-auto pb-1 md:pb-0">
+          {(['TWIN', 'STATUS', 'PROGRAM', 'PREDICTION', 'HISTORY', 'USER DATA', 'NOTIFICATIONS', 'SETUP'] as TabType[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`flex items-center space-x-2 px-3 md:px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
             >
               {tab === 'TWIN' && <LayoutDashboard size={14} />}
               {tab === 'STATUS' && <BarChart3 size={14} />}
@@ -1456,14 +1648,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {tab === 'PREDICTION' && <Radar size={14} />}
               {tab === 'HISTORY' && <Activity size={14} />}
               {tab === 'USER DATA' && <Beaker size={14} />}
+              {tab === 'NOTIFICATIONS' && <ShieldAlert size={14} />}
               {tab === 'SETUP' && <Settings size={14} />}
               <span>{tab === 'SETUP' ? 'PROCESS SETUP' : tab}</span>
             </button>
           ))}
         </div>
 
-        <div className="flex items-center space-x-6 text-[10px] font-black uppercase tracking-tighter">
-          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div className="flex items-center space-x-4 md:space-x-6 text-[9px] md:text-[10px] font-black uppercase tracking-tighter w-full md:w-auto justify-between md:justify-end">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 overflow-x-auto scrollbar-hide">
             <div className="flex items-center px-3 border-r border-slate-200 mr-2">
               <span className="text-slate-400 mr-2">Machine Type:</span>
               <select

@@ -77,6 +77,7 @@ export interface ManualControlState {
   depthOfCut: number;
   lengthX: number;
   lengthY: number;
+  heightZ: number;
   stepOver: number;
   coolantEnabled: boolean;
   gCodeProgram: string;
@@ -85,6 +86,7 @@ export interface ManualControlState {
   targetX: number;
   targetY: number;
   targetZ: number;
+  notificationEmails: string[];
 }
 
 export interface ConventionalMillingState {
@@ -129,7 +131,15 @@ export interface TwinState {
     predictionData: TelemetryData[];
     wearThreshold: number;
     estimatedTimeToWear: number | null;
+    exactWearTimestamp: number | null;
+    estimatedOperationsRemaining: number | null;
+    operationCycleTime: number;
     currentIndex: number;
+    workpieceDimensions: {
+      length: number;
+      width: number;
+      height: number;
+    };
   };
   materialTest: MaterialTest;
   manualControl: ManualControlState;
@@ -155,6 +165,7 @@ export interface TwinState {
       forceZ: number;
       toolWear: number;
       soundLimit: number;
+      spindleLoadLimit: number;
     };
     thingSpeakKey: string;
     thingSpeakReadKey: string;
