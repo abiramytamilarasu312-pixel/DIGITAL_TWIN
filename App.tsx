@@ -337,7 +337,7 @@ useEffect(() => {
     setNotifications(prev => [newNotif, ...prev].slice(0, 5));
 
     // Send Email Notification if critical or warning
-    if ((type === 'CRITICAL' || type === 'WARNING') && twinState.manualControl.notificationEmails.length > 0) {
+    if (twinState.manualControl.notificationEmails.length > 0) {
       const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
       const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
       const userId = import.meta.env.VITE_EMAILJS_USER_ID;
