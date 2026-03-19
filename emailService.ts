@@ -10,8 +10,8 @@ export async function sendAlert(data: any) {
 
 const now = Date.now();
 
-// prevent spam (1 email per 30 seconds)
-if (now - lastAlertTime < 30000) {
+// prevent spam (1 email per 10 seconds)
+if (now - lastAlertTime < 10000) {
   return;
 }
 
