@@ -13,12 +13,11 @@ export async function sendAlert(data: any) {
       SERVICE_ID,
       TEMPLATE_ID,
       {
-        status: 'ALERT',
-        rpm: data.rpm,
-        vibration: data.vibration,
-        temperature: data.temperature,
-        sound: data.soundLevel, // FIXED
-        condition: data.condition,
+        machine_name: 'CNC Machine',
+        alert_type: 'CRITICAL',
+        category: 'VIBRATION',
+        message: `Vibration RMS reached ${data.vibration?.toFixed(3)}`,
+        timestamp: new Date().toLocaleString()
       },
       {
         publicKey: PUBLIC_KEY,
