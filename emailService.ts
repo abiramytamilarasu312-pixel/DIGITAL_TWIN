@@ -21,11 +21,11 @@ export async function sendAlert(data: any) {
 
     // ✅ Check all conditions (NOT else-if anymore)
     if (data.vibrationAlert) {
-      messages.push(`• Vibration RMS: ${data.vibration?.toFixed(3)}`);
+      messages.push(`• Vibration RMS: ${data.vibration?.toFixed(3)} g`);
     }
 
     if (data.noiseAlarm) {
-      messages.push(`• Sound Level: ${data.soundLevel?.toFixed(3)}`);
+      messages.push(`• Sound Level: ${data.noiseLevel?.toFixed(3)}`);
     }
 
     if (data.temperature > 35) {
