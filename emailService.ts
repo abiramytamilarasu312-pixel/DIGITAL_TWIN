@@ -1,3 +1,5 @@
+let lastAlertTime = 0;
+
 import emailjs from '@emailjs/browser';
 
 const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
@@ -6,6 +8,14 @@ const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_USER_ID;
 
 export async function sendAlert(data: any) {
 
+const now = Date.now();
+
+// prevent spam (1 email per 30 seconds)
+if (now - lastAlertTime < 30000) {
+  return;
+}
+
+lastAlertTime = now;
   console.log("Sending email with data:", data);
 
   try {
