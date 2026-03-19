@@ -21,7 +21,7 @@ export async function sendAlert(data: any) {
 
     // ✅ Check all conditions (NOT else-if anymore)
     if (data.vibrationAlert) {
-      messages.push(`• Vibration RMS: ${data.vibration?.toFixed(3)} g`);
+      messages.push(`• Vibration RMS: ${data.vibration?.toFixed(3)}`);
     }
 
     if (data.noiseAlarm) {

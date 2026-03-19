@@ -344,14 +344,19 @@ useEffect(() => {
 
       if (serviceId && templateId && userId) {
         twinState.manualControl.notificationEmails.forEach(email => {
-          emailjs.send(serviceId, templateId, {
+          emailjs.send(serviceId, templateId,{
             to_email: email,
             alert_type: type,
             category: category,
             message: message,
             machine_name: twinState.name,
-            timestamp: new Date(now).toLocaleString()
-          }, {
+            timestamp: new Date(now).toLocaleString(),
+            vibration: twinState.telemetry.vibration?.toFixed(3),
+            sound: twinState.telemetry.noiseLevel?.toFixed(3),
+            temperature: twinState.telemetry.temperature?.toFixed(1),
+            health: twinState.telemetry.machineHealth?.toFixed(1),
+            rpm: twinState.telemetry.rpm?.toFixed(0)
+          } , {
             publicKey: userId
           }).catch(err => console.error('Email Notification Error:', err));
         });
