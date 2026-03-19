@@ -925,6 +925,7 @@ useEffect(() => {
           }
 
           setHistory(h => [...h, nextTele].slice(-50));
+          sendAlert(nextTele);
 
           if (nextIndex === 0) {
             return {
@@ -967,6 +968,7 @@ useEffect(() => {
           const thresholds = prev.config.thresholds;
           const enabledSensors = prev.config.enabledSensors;
           setHistory(h => [...h, nextTele].slice(-50));
+          sendAlert(nextTele);
 
           if (prev.status === 'RUNNING' && !activeAlarm) {
             let alarm: Alarm | null = null;
