@@ -1,4 +1,5 @@
 
+import { sendAlert } from './emailService';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Dashboard } from './components/Dashboard';
 import { TelemetryData, TwinState, MachineHealth, Material, ToolGrade, DiscoveredDevice } from './types';
@@ -10,7 +11,7 @@ const MACHINE_CONFIG = {
 import {
   Wifi, Cloud, AlertCircle, X, ShieldAlert, AlertTriangle, Info
 } from 'lucide-react';
-import emailjs from 'emailjs-com';
+import emailjs from '@emailjs/browser';
 
 const MATERIALS: Material[] = [
   { id: 'al6061', name: 'Aluminum 6061', hardnessFactor: 0.7, thermalFactor: 1.5 },
@@ -350,7 +351,9 @@ useEffect(() => {
             message: message,
             machine_name: twinState.name,
             timestamp: new Date(now).toLocaleString()
-          }, userId).catch(err => console.error('Email Notification Error:', err));
+          }, {
+            publicKey: userId
+          }).catch(err => console.error('Email Notification Error:', err));
         });
       } else {
         console.warn('EmailJS configuration missing. Please set VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_TEMPLATE_ID, and VITE_EMAILJS_USER_ID in environment variables.');
@@ -1187,6 +1190,7 @@ useEffect(() => {
         nextTele.noiseAlarm = nextTele.noiseLevel > thresholds.soundLimit;
 
         setHistory(h => [...h, nextTele].slice(-50));
+        sendAlert(nextTele);
 
         if (isRunning && testActive && nextTele.toolWear >= testTargetWear) {
           addNotification('INFO', 'SYSTEM', `Material test completed: wear target reached (${testTargetWear}%)`);
