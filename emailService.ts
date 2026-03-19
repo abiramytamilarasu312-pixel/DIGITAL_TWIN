@@ -10,34 +10,37 @@ export async function sendAlert(data: any) {
   try {
     const now = Date.now();
 
-    // ⏱️ Prevent spam (1 email every 10 seconds)
+    // ⏱️ Prevent spam (1 email per 10 seconds)
     if (now - lastAlertTime < 10000) {
       return;
     }
 
+    console.log("Checking alert conditions:", data);
+
+    let messages: string[] = [];
+
+    // ✅ Check all conditions (NOT else-if anymore)
+    if (data.vibrationAlert) {
+      messages.push(`• Vibration RMS: ${data.vibration?.toFixed(3)}`);
+    }
+
+    if (data.noiseAlarm) {
+      messages.push(`• Sound Level: ${data.soundLevel?.toFixed(3)}`);
+    }
+
+    if (data.temperature > 35) {
+      messages.push(`• Temperature: ${data.temperature?.toFixed(1)} °C`);
+    }
+
+    // ❌ No alert → no email
+    if (messages.length === 0) {
+      return;
+    }
+
+    // ⏱️ update time ONLY when sending email
     lastAlertTime = now;
 
-    console.log("Sending email with data:", data);
-
-    let category = '';
-    let message = '';
-
-    // 🔍 Detect which parameter triggered alert
-    if (data.vibrationAlert) {
-      category = 'VIBRATION';
-      message = `Vibration RMS reached ${data.vibration?.toFixed(3)}`;
-    } 
-    else if (data.noiseAlarm) {
-      category = 'SOUND';
-      message = `Sound level reached ${data.soundLevel?.toFixed(3)}`;
-    } 
-    else if (data.temperature > 35) {
-      category = 'TEMPERATURE';
-      message = `Temperature reached ${data.temperature?.toFixed(1)} °C`;
-    } 
-    else {
-      return; // ❌ No alert condition → no email
-    }
+    const finalMessage = messages.join('\n');
 
     await emailjs.send(
       SERVICE_ID,
@@ -45,8 +48,8 @@ export async function sendAlert(data: any) {
       {
         machine_name: 'CNC Machine',
         alert_type: 'CRITICAL',
-        category: category,
-        message: message,
+        category: 'MULTI-CONDITION',
+        message: finalMessage,
         timestamp: new Date().toLocaleString()
       },
       {
