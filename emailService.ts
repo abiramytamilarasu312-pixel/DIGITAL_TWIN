@@ -42,6 +42,23 @@ export async function sendAlert(data: any) {
 
     const finalMessage = messages.join('\n');
 
+    let statusLabel = 'GOOD';
+
+    if (
+      data.vibration > 0.3 ||
+      data.noiseLevel > 0.15 ||
+      data.temperature > 35
+    ) {
+      statusLabel = 'CRITICAL';
+    } 
+    else if (
+      data.vibration > 0.25 ||
+      data.noiseLevel > 0.10 ||
+      data.temperature > 30
+    ) {
+      statusLabel = 'WARNING';
+    }
+
     await emailjs.send(
       SERVICE_ID,
       TEMPLATE_ID,
@@ -49,6 +66,7 @@ export async function sendAlert(data: any) {
         machine_name: 'CNC Machine',
         alert_type: 'CRITICAL',
         category: 'MULTI-CONDITION',
+        status: statusLabel,
         message: finalMessage,
         timestamp: new Date().toLocaleString()
       },
