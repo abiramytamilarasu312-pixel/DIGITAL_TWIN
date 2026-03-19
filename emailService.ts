@@ -6,14 +6,7 @@ const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_USER_ID;
 
 export async function sendAlert(data: any) {
 
-  // Alert condition
-  if (
-    data.temperature < 35 &&
-    data.vibration < 0.3 &&
-    data.noiseLevel < 0.15
-  ) {
-    return;
-  }
+  console.log("Sending email with data:", data);
 
   try {
     await emailjs.send(
@@ -24,7 +17,7 @@ export async function sendAlert(data: any) {
         rpm: data.rpm,
         vibration: data.vibration,
         temperature: data.temperature,
-        sound: data.noiseLevel,
+        sound: data.soundLevel, // FIXED
         condition: data.condition,
       },
       {
