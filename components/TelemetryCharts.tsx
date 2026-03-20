@@ -47,7 +47,7 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis dataKey="time" hide />
-            <YAxis hide domain={[0, 0.6]} />
+            <YAxis hide domain={[0, 1]} />
             <Tooltip 
                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '10px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                itemStyle={{ color: '#4f46e5' }}
@@ -64,7 +64,7 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis dataKey="time" hide />
-            <YAxis hide domain={[0, 0.30]} />
+            <YAxis hide domain={[0, 1]} />
             <Tooltip 
                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '10px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                itemStyle={{ color: '#06b6d4' }}
