@@ -13,6 +13,32 @@ import {
 } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 
+const estimateToolWearMm = (
+  vibration: number,
+  noiseLevel: number,
+  temperature: number,
+  previousWear: number = 0,
+  isRunning: boolean = true
+): number => {
+  if (!isRunning) {
+    return Math.max(0, previousWear);
+  }
+
+  // Base wear increment per cycle in mm
+  const baseIncrement = 0.0015;
+
+  // Sensor contribution
+  const vibrationFactor = Math.max(0, vibration - 0.05) * 0.012;
+  const noiseFactor = Math.max(0, noiseLevel - 0.03) * 0.010;
+  const thermalFactor = Math.max(0, temperature - 30) * 0.0008;
+
+  // Total increment this cycle
+  const increment = baseIncrement + vibrationFactor + noiseFactor + thermalFactor;
+
+  // Clamp to a practical demo range
+  return Math.min(0.50, Math.max(0, previousWear + increment));
+};
+
 const MATERIALS: Material[] = [
   { id: 'al6061', name: 'Aluminum 6061', hardnessFactor: 0.7, thermalFactor: 1.5 },
   { id: 'mild-steel', name: 'Mild Steel', hardnessFactor: 1.0, thermalFactor: 1.0 },
@@ -160,7 +186,7 @@ const INITIAL_STATE: TwinState = {
       forceX: 250,
       forceY: 250,
       forceZ: 800,
-      toolWear: 95,
+      toolWear: 0.30,
       soundLimit: 0.15,
       spindleLoadLimit: 85
     },
@@ -483,6 +509,7 @@ useEffect(() => {
 
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
 
+    let previousWearMm = 0;
     const data: TelemetryData[] = lines.slice(1).map((line, idx) => {
       const values = line.split(',').map(v => v.trim());
 
@@ -525,7 +552,19 @@ useEffect(() => {
       row.spindleLoad = row.spindleLoad ?? 0;
       row.vibration = row.vibration ?? 0;
       row.temperature = row.temperature ?? 24;
-      row.toolWear = row.toolWear ?? 0;
+      
+      if (row.toolWear === undefined || row.toolWear === null || isNaN(row.toolWear)) {
+        row.toolWear = estimateToolWearMm(
+          row.vibration,
+          row.noiseLevel,
+          row.temperature,
+          previousWearMm,
+          true
+        );
+      }
+
+      previousWearMm = row.toolWear;
+      
       row.current = row.current ?? 0;
       row.powerConsumption = row.powerConsumption ?? 0;
       row.machineHealth = row.machineHealth ?? 100;
@@ -800,6 +839,13 @@ useEffect(() => {
         const temperature = parseFloat(data.field5) || 24;
         const tempAlarm = parseFloat(data.field6) || 0;
         const noiseAlarm = parseFloat(data.field7) || 0;
+        const estimatedWearMm = estimateToolWearMm(
+          vibration,
+          sound,
+          temperature,
+          stateRef.current.telemetry.toolWear || 0,
+          vibration > 0.02
+        );
 
         const updatedTele: TelemetryData = {
           ...stateRef.current.telemetry,
@@ -807,6 +853,7 @@ useEffect(() => {
           vibration,
           noiseLevel: sound,
           temperature,
+          toolWear: estimatedWearMm,
           machineHealth: healthFromESP,
           vibrationAlert: vibration > stateRef.current.config.thresholds.vibrationRms,
           noiseAlarm: noiseAlarm === 1,
@@ -1172,7 +1219,25 @@ useEffect(() => {
                   : Math.max(24, prev.telemetry.temperature - (0.5 * simulationSpeed))
               )
             : 24,
-          toolWear: Math.min(100, prev.telemetry.toolWear + wearMod),
+          toolWear: estimateToolWearMm(
+            isRunning && enabledSensors.vibration
+              ? (
+                  prev.telemetry.vibration < 0.1
+                    ? noise(0.15, 0.05)
+                    : noise(Math.min(2.5, prev.telemetry.vibration + (0.02 * simulationSpeed * loadMod * forceMultiplier)), 0.01)
+                )
+              : noise(0.05, 0.02),
+            isRunning ? noise(0.10 + (wearMod * 2), 0.03) : 0.03,
+            enabledSensors.temperature
+              ? (
+                  isRunning
+                    ? Math.min(135, prev.telemetry.temperature + (1.2 * heatMod))
+                    : Math.max(24, prev.telemetry.temperature - (0.5 * simulationSpeed))
+                )
+              : 24,
+            prev.telemetry.toolWear,
+            isRunning
+          ),
           current: isRunning ? noise(2.0 + (prev.telemetry.spindleLoad / 20), 0.2) : 0,
           powerConsumption: isRunning ? noise(4.8 * loadMod * forceMultiplier, 0.8) : 0.2,
           forces: {

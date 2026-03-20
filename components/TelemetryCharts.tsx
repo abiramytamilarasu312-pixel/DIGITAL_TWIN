@@ -10,7 +10,9 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  Legend
+  Legend,
+  ScatterChart,
+  Scatter
 } from 'recharts';
 import { TelemetryData } from '../types';
 
@@ -25,6 +27,10 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
     noise: parseFloat((h.noiseLevel || 0).toFixed(3)),
     health: h.machineHealth
   })).slice(-20);
+  const wearVsRmsData = history.map(h => ({
+    rms: parseFloat((h.vibration || 0).toFixed(3)),
+    toolWear: parseFloat((h.toolWear || 0).toFixed(4))
+  })).filter(d => d.rms > 0 && d.toolWear > 0);
 
   return (
     <div className="space-y-6">
@@ -65,6 +71,48 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
             />
             <Line type="monotone" dataKey="noise" stroke="#06b6d4" strokeWidth={2} dot={false} animationDuration={300} isAnimationActive={false} />
           </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="bg-white rounded-xl p-4 border border-slate-200 h-[250px] shadow-sm">
+        <h3 className="text-[10px] font-bold text-slate-400 uppercase mb-3">
+          Tool Wear vs RMS Analysis
+        </h3>
+
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+
+            <XAxis
+              type="number"
+              dataKey="rms"
+              name="RMS"
+              label={{ value: 'RMS (Vibration)', position: 'insideBottom', offset: -5 }}
+            />
+            
+            <YAxis
+              type="number"
+              dataKey="toolWear"
+              name="Tool Wear"
+              label={{ value: 'Tool Wear (mm)', angle: -90, position: 'insideLeft' }}
+            />
+
+            <Tooltip
+              cursor={{ strokeDasharray: '3 3' }}
+              contentStyle={{
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '10px'
+              }}
+            />
+
+            <Scatter
+              name="Wear vs RMS"
+              data={wearVsRmsData}
+              fill="#ef4444"
+            />
+          </ScatterChart>
         </ResponsiveContainer>
       </div>
     </div>
