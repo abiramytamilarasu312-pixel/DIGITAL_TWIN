@@ -89,8 +89,9 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
               type="number"
               dataKey="rms"
               name="RMS"
-              domain={[0, 0.4]}
+              domain={[0.0, 0.411]}
               ticks={xTicks}
+              allowDataOverflow={true}
               label={{ value: 'RMS (Vibration)', position: 'insideBottom', offset: -5 }}
             />
             
@@ -98,7 +99,8 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
               type="number"
               dataKey="toolWear"
               name="Tool Wear"
-              domain={[0, 0.4]}
+              domain={[0.0, 0.455]}
+              allowDataOverflow={true}
               label={{ value: 'Tool Wear (mm)', angle: -90, position: 'insideLeft' }}
             />
 
