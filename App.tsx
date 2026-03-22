@@ -836,7 +836,8 @@ useEffect(() => {
         const alertLevel = parseFloat(data.field2) || 0;
         const healthFromESP = parseFloat(data.field3) || 100;
         const sound = parseFloat(data.field4) || 0;
-        const temperature = parseFloat(data.field5) || 24;
+        const isRunningESP = vibration > 0.05;
+        const temperature = isRunningESP ? (parseFloat(data.field5) || 24) : 24;
         const tempAlarm = parseFloat(data.field6) || 0;
         const noiseAlarm = parseFloat(data.field7) || 0;
         const estimatedWearMm = estimateToolWearMm(
@@ -1216,7 +1217,7 @@ useEffect(() => {
             ? (
                 isRunning
                   ? Math.min(135, prev.telemetry.temperature + (1.2 * heatMod))
-                  : Math.max(24, prev.telemetry.temperature - (0.5 * simulationSpeed))
+                  : 24
               )
             : 24,
           toolWear: estimateToolWearMm(
@@ -1232,7 +1233,7 @@ useEffect(() => {
               ? (
                   isRunning
                     ? Math.min(135, prev.telemetry.temperature + (1.2 * heatMod))
-                    : Math.max(24, prev.telemetry.temperature - (0.5 * simulationSpeed))
+                    : 24
                 )
               : 24,
             prev.telemetry.toolWear,

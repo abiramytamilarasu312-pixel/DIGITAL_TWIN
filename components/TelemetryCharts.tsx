@@ -87,6 +87,7 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
               type="number"
               dataKey="rms"
               name="RMS"
+              domain={[0, 0.655]}
               label={{ value: 'RMS (Vibration)', position: 'insideBottom', offset: -5 }}
             />
             
