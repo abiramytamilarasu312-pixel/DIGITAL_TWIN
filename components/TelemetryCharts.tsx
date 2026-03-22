@@ -32,6 +32,8 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
     toolWear: parseFloat((h.toolWear || 0).toFixed(4))
   })).filter(d => d.rms > 0 && d.toolWear > 0);
 
+  const xTicks = Array.from({ length: Math.floor(0.4 / 0.022) + 1 }, (_, i) => parseFloat((i * 0.022).toFixed(3)));
+
   return (
     <div className="space-y-6">
       {/* Vibration Monitoring */}
@@ -87,7 +89,8 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
               type="number"
               dataKey="rms"
               name="RMS"
-              domain={[0, 0.655]}
+              domain={[0, 0.4]}
+              ticks={xTicks}
               label={{ value: 'RMS (Vibration)', position: 'insideBottom', offset: -5 }}
             />
             
@@ -95,7 +98,7 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
               type="number"
               dataKey="toolWear"
               name="Tool Wear"
-              domain={[0, 0.5]}
+              domain={[0, 0.4]}
               label={{ value: 'Tool Wear (mm)', angle: -90, position: 'insideLeft' }}
             />
 
@@ -113,7 +116,7 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
               name="Wear vs RMS"
               data={wearVsRmsData}
               fill="#ef4444"
-              line={{ stroke: '#ef4444', strokeWidth: 2 }}
+              line={{ stroke: '#ef4444', strokeWidth: 3 }}
             />
           </ScatterChart>
         </ResponsiveContainer>
