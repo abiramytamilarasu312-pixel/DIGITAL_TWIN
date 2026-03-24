@@ -117,6 +117,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const soundLimit = twinState.config.thresholds.soundLimit;
   const tempLimit = twinState.config.thresholds.temperature;
 
+  const calculateOptimization = () => {
+    const { spindleSpeed, feedRate, material, toolGrade } = twinState.predictedSimulation;
+    const baseVibration = 0.08 + (spindleSpeed / 4000) * (feedRate / 400);
+    const ambientTemp = 24;
+    const steadyStateTemp = ambientTemp + (spindleSpeed / 150) * (feedRate / 150) * material.thermalFactor / toolGrade.heatResistance;
+    
+    return {
+      vibration: baseVibration,
+      noise: baseVibration * 0.4,
+      temperature: steadyStateTemp
+    };
+  };
+
+  const optimized = calculateOptimization();
+
   const stats = [
     {
       label: 'Vibration RMS',
@@ -445,7 +460,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center">
                     <Activity size={14} className="mr-2 text-emerald-500" /> Vibration RMS
                   </h4>
-                  <span className="text-xs font-black text-slate-900 font-mono">{vibrationValue.toFixed(3)}</span>
+                  <div className="flex items-center space-x-2">
+                    {twinState.telemetry?.optimizedVibration && vibrationValue > twinState.telemetry.optimizedVibration * 1.2 && (
+                      <span className="flex items-center px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-[8px] font-black uppercase animate-pulse">
+                        <ShieldAlert size={10} className="mr-1" /> Wear Warning
+                      </span>
+                    )}
+                    <span className="text-xs font-black text-slate-900 font-mono">{vibrationValue.toFixed(3)}</span>
+                  </div>
                 </div>
                 <div className="h-48">
                   <Line
@@ -459,6 +481,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         fill: true,
                         tension: 0.4,
                         pointRadius: 0
+                      },
+                      {
+                        label: 'Optimized Baseline',
+                        data: history.map(h => h.optimizedVibration || 0),
+                        borderColor: '#3b82f6',
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        hidden: !history.some(h => h.optimizedVibration)
                       }]
                     }}
                     options={{
@@ -487,7 +519,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center">
                     <Wind size={14} className="mr-2 text-indigo-500" /> Sound Level
                   </h4>
-                  <span className="text-xs font-black text-slate-900 font-mono">{soundValue.toFixed(3)}</span>
+                  <div className="flex items-center space-x-2">
+                    {twinState.telemetry?.optimizedNoise && soundValue > twinState.telemetry.optimizedNoise * 1.2 && (
+                      <span className="flex items-center px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-[8px] font-black uppercase animate-pulse">
+                        <ShieldAlert size={10} className="mr-1" /> Wear Warning
+                      </span>
+                    )}
+                    <span className="text-xs font-black text-slate-900 font-mono">{soundValue.toFixed(3)}</span>
+                  </div>
                 </div>
                 <div className="h-48">
                   <Line
@@ -501,6 +540,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         fill: true,
                         tension: 0.4,
                         pointRadius: 0
+                      },
+                      {
+                        label: 'Optimized Baseline',
+                        data: history.map(h => h.optimizedNoise || 0),
+                        borderColor: '#3b82f6',
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        hidden: !history.some(h => h.optimizedNoise)
                       }]
                     }}
                     options={{
@@ -529,7 +578,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center">
                     <Thermometer size={14} className="mr-2 text-orange-500" /> Temperature (°C)
                   </h4>
-                  <span className="text-xs font-black text-slate-900 font-mono">{tempValue.toFixed(1)}</span>
+                  <div className="flex items-center space-x-2">
+                    {twinState.telemetry?.optimizedTemperature && tempValue > twinState.telemetry.optimizedTemperature * 1.2 && (
+                      <span className="flex items-center px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-[8px] font-black uppercase animate-pulse">
+                        <ShieldAlert size={10} className="mr-1" /> Wear Warning
+                      </span>
+                    )}
+                    <span className="text-xs font-black text-slate-900 font-mono">{tempValue.toFixed(1)}</span>
+                  </div>
                 </div>
                 <div className="h-48">
                   <Line
@@ -543,6 +599,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         fill: true,
                         tension: 0.4,
                         pointRadius: 0
+                      },
+                      {
+                        label: 'Optimized Baseline',
+                        data: history.map(h => h.optimizedTemperature || 0),
+                        borderColor: '#3b82f6',
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        hidden: !history.some(h => h.optimizedTemperature)
                       }]
                     }}
                     options={{
@@ -643,7 +709,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     data={{
                       datasets: [{
                         label: 'Tool Wear vs RMS',
-                        data: history.map(h => ({ x: h.toolWear, y: h.vibration })),
+                        data: [...history]
+                          .sort((a, b) => a.toolWear - b.toolWear)
+                          .map(h => ({ x: h.toolWear, y: h.vibration })),
                         borderColor: '#6366f1',
                         backgroundColor: 'rgba(99, 102, 241, 0.1)',
                         borderWidth: 2,
@@ -1313,6 +1381,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       {twinState.predictedSimulation.isActive ? 'Simulation Running...' : 'Ready to Analyze'}
                     </div>
                   </div>
+                </div>
+
+                <div className="bg-emerald-50 p-6 rounded-3xl border border-emerald-200 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center">
+                      <Shield size={14} className="mr-2" /> Optimization Baseline (Ideal)
+                    </h4>
+                    <span className="text-[8px] font-bold text-emerald-600 uppercase">Target Performance</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="p-4 bg-white rounded-2xl border border-emerald-100">
+                      <div className="text-[8px] font-black text-slate-400 uppercase mb-1">Opt. Vibration</div>
+                      <div className="text-lg font-black text-emerald-600 font-mono">
+                        {optimized.vibration.toFixed(3)}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-emerald-100">
+                      <div className="text-[8px] font-black text-slate-400 uppercase mb-1">Opt. Sound</div>
+                      <div className="text-lg font-black text-emerald-600 font-mono">
+                        {optimized.noise.toFixed(3)}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-white rounded-2xl border border-emerald-100">
+                      <div className="text-[8px] font-black text-slate-400 uppercase mb-1">Opt. Temp</div>
+                      <div className="text-lg font-black text-emerald-600 font-mono">
+                        {optimized.temperature.toFixed(1)}°C
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-emerald-600 font-bold uppercase leading-relaxed">
+                    Comparison baseline for tool wear detection. Values exceeding these baselines by &gt;20% indicate early tool degradation or upcoming breakage risks.
+                  </p>
                 </div>
 
                 <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200">

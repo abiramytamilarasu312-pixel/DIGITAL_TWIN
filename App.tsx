@@ -82,6 +82,9 @@ const INITIAL_TELEMETRY: TelemetryData = {
   noiseAlarm: false,
   temperature: 24,
   toolWear: 0,
+  optimizedVibration: 0,
+  optimizedNoise: 0,
+  optimizedTemperature: 24,
   current: 0,
   powerConsumption: 0,
   forces: { fx: 0, fy: 0, fz: 0 }
@@ -274,6 +277,12 @@ const generatePredictionData = (
     const temp = ambientTemp + (steadyStateTemp - ambientTemp) * (1 - Math.exp(-time / 30)); 
     const vib = baseVibration * (1 + (wear / 100) * 1.5) + (Math.random() * 0.01);
     const sound = (vib * 0.4) + (Math.random() * 0.005);
+    
+    // Optimized baseline values (ideal conditions)
+    const optVib = baseVibration;
+    const optSound = baseVibration * 0.4;
+    const optTemp = ambientTemp + (steadyStateTemp - ambientTemp) * (1 - Math.exp(-time / 30)); // Temp is already quite optimized in this model
+
     const load = Math.min(100, (feedRate / 400) * depthOfCut * 15 * (1 + wear / 150));
     
     data.push({
@@ -288,6 +297,9 @@ const generatePredictionData = (
       noiseAlarm: sound > soundThreshold,
       temperature: temp,
       toolWear: wear,
+      optimizedVibration: optVib,
+      optimizedNoise: optSound,
+      optimizedTemperature: optTemp,
       current: (spindleSpeed / 1200) * 4 + (feedRate / 150),
       powerConsumption: (spindleSpeed / 1200) * 1.5 + (feedRate / 400),
       forces: {
@@ -775,8 +787,7 @@ useEffect(() => {
   
     setActiveAlarm(null);
     setNotifications([]);
-    // We keep history as per user request
-    // setHistory([]); 
+    setHistory([]); 
 
     if (stateRef.current.mode === 'SIMULATED' || stateRef.current.mode === 'OFFLINE_CSV' || stateRef.current.mode === 'PREDICTED_SIMULATION') {
       setTwinState(prev => ({
@@ -977,7 +988,7 @@ useEffect(() => {
             };
           }
 
-          setHistory(h => [...h, nextTele].slice(-50));
+          setHistory(h => [...h, nextTele].slice(-200));
           sendAlert(nextTele);
 
           if (nextIndex === 0) {
@@ -1020,7 +1031,7 @@ useEffect(() => {
 
           const thresholds = prev.config.thresholds;
           const enabledSensors = prev.config.enabledSensors;
-          setHistory(h => [...h, nextTele].slice(-50));
+          setHistory(h => [...h, nextTele].slice(-200));
           sendAlert(nextTele);
 
           if (prev.status === 'RUNNING' && !activeAlarm) {
@@ -1262,7 +1273,7 @@ useEffect(() => {
         nextTele.vibrationAlert = nextTele.vibration > thresholds.vibrationRms;
         nextTele.noiseAlarm = nextTele.noiseLevel > thresholds.soundLimit;
 
-        setHistory(h => [...h, nextTele].slice(-50));
+        setHistory(h => [...h, nextTele].slice(-200));
         sendAlert(nextTele);
 
         if (isRunning && testActive && nextTele.toolWear >= testTargetWear) {

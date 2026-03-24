@@ -31,6 +31,9 @@ export interface TelemetryData {
   noiseAlarm: boolean;
   temperature: number;
   toolWear: number;
+  optimizedVibration?: number;
+  optimizedNoise?: number;
+  optimizedTemperature?: number;
   current: number;
   powerConsumption: number;
   forces: {

@@ -30,7 +30,8 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
   const wearVsRmsData = history.map(h => ({
     rms: parseFloat((h.vibration || 0).toFixed(3)),
     toolWear: parseFloat((h.toolWear || 0).toFixed(4))
-  })).filter(d => d.rms > 0 && d.toolWear > 0);
+  })).filter(d => d.rms > 0 && d.toolWear > 0)
+     .sort((a, b) => a.toolWear - b.toolWear);
 
   return (
     <div className="space-y-6">
