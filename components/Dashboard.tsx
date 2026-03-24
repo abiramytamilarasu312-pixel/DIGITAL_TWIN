@@ -643,7 +643,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     data={{
                       datasets: [{
                         label: 'Tool Wear vs RMS',
-                        data: history.map(h => ({ x: h.vibration, y: h.toolWear })),
+                        data: history.map(h => ({ x: h.toolWear, y: h.vibration })),
                         backgroundColor: '#6366f1',
                         pointRadius: 4,
                         pointHoverRadius: 6
@@ -656,7 +656,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         legend: { display: false },
                         tooltip: {
                           callbacks: {
-                            label: (context: any) => `RMS: ${context.parsed.x.toFixed(3)}, Wear: ${context.parsed.y.toFixed(3)}mm`
+                            label: (context: any) => `Wear: ${context.parsed.x.toFixed(3)}mm, RMS: ${context.parsed.y.toFixed(3)}`
                           }
                         }
                       },
@@ -665,15 +665,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           type: 'linear',
                           position: 'bottom',
                           min: 0,
-                          max: 1.3,
-                          title: { display: true, text: 'RMS (Vibration)', font: { size: 10, weight: 'bold' } },
+                          max: 0.8,
+                          title: { display: true, text: 'Tool Wear (mm)', font: { size: 10, weight: 'bold' } },
                           grid: { color: '#f1f5f9' },
                           ticks: { font: { size: 10 } }
                         },
                         y: {
-                          min: 0.01,
-                          max: 0.8,
-                          title: { display: true, text: 'Tool Wear (mm)', font: { size: 10, weight: 'bold' } },
+                          min: 0,
+                          max: 1.3,
+                          title: { display: true, text: 'RMS (Vibration)', font: { size: 10, weight: 'bold' } },
                           grid: { color: '#f1f5f9' },
                           ticks: { font: { size: 10 } }
                         }

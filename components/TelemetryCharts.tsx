@@ -32,8 +32,6 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
     toolWear: parseFloat((h.toolWear || 0).toFixed(4))
   })).filter(d => d.rms > 0 && d.toolWear > 0);
 
-  const xTicks = Array.from({ length: Math.floor(0.4 / 0.022) + 1 }, (_, i) => parseFloat((i * 0.022).toFixed(3)));
-
   return (
     <div className="space-y-6">
       {/* Vibration Monitoring */}
@@ -87,21 +85,17 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
 
             <XAxis
               type="number"
-              dataKey="rms"
-              name="RMS"
-              domain={[0.0, 0.411]}
-              ticks={xTicks}
-              allowDataOverflow={true}
-              label={{ value: 'RMS (Vibration)', position: 'insideBottom', offset: -5 }}
+              dataKey="toolWear"
+              name="Tool Wear"
+              domain={[0, 0.5]}
+              label={{ value: 'Tool Wear (mm)', position: 'insideBottom', offset: -5 }}
             />
             
             <YAxis
               type="number"
-              dataKey="toolWear"
-              name="Tool Wear"
-              domain={[0.0, 0.455]}
-              allowDataOverflow={true}
-              label={{ value: 'Tool Wear (mm)', angle: -90, position: 'insideLeft' }}
+              dataKey="rms"
+              name="RMS"
+              label={{ value: 'RMS (Vibration)', angle: -90, position: 'insideLeft' }}
             />
 
             <Tooltip
@@ -114,11 +108,18 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
               }}
             />
             
+            <Line
+              type="monotone"
+              dataKey="rms"
+              data={wearVsRmsData}
+              stroke="#ef4444"
+              dot={false}
+            />
+
             <Scatter
               name="Wear vs RMS"
               data={wearVsRmsData}
               fill="#ef4444"
-              line={{ stroke: '#ef4444', strokeWidth: 3 }}
             />
           </ScatterChart>
         </ResponsiveContainer>
