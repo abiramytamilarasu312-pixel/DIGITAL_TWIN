@@ -114,12 +114,7 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
               data={wearVsRmsData}
               stroke="#ef4444"
               dot={false}
-            />
-
-            <Scatter
-              name="Wear vs RMS"
-              data={wearVsRmsData}
-              fill="#ef4444"
+              strokeWidth={2}
             />
           </ScatterChart>
         </ResponsiveContainer>

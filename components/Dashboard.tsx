@@ -639,14 +639,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <div className="text-[10px] font-bold text-slate-400 uppercase">Correlation View</div>
                 </div>
                 <div className="h-64">
-                  <Scatter
+                  <Line
                     data={{
                       datasets: [{
                         label: 'Tool Wear vs RMS',
                         data: history.map(h => ({ x: h.toolWear, y: h.vibration })),
-                        backgroundColor: '#6366f1',
-                        pointRadius: 4,
-                        pointHoverRadius: 6
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.4,
+                        fill: false
                       }]
                     }}
                     options={{
