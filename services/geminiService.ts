@@ -24,10 +24,9 @@ export async function getIndustrialInsights(machineState: any, retryCount = 0): 
       - Test Title: ${materialTest.testTitle || 'Standard Run'}
       - Batch ID: ${materialTest.batchId || 'N/A'}
       - Scenario: ${materialTest.scenario || 'NORMAL'}
-      - Custom Fine-Tuning: Wear Multiplier (${materialTest.customWearMultiplier || 1.0}x), Heat Multiplier (${materialTest.customHeatMultiplier || 1.0}x)
+      - Custom Fine-Tuning: Wear Multiplier (${materialTest.customWearMultiplier || 1.0}x)
 
       🔧 SENSOR INPUT EVALUATION:
-      - Temperature: <40°C normal, 40-55°C elevated, >55°C overheating.
       - Vibration: <2.0g normal, 2.0-4.0g moderate, >4.0g critical.
       - RPM: Stable <10% fluctuation.
       
@@ -49,7 +48,6 @@ export async function getIndustrialInsights(machineState: any, retryCount = 0): 
     `;
 
     const iotData = {
-      temperature: machineState.telemetry.temperature,
       vibration: machineState.telemetry.vibration,
       rpm: machineState.telemetry.rpm,
       current: machineState.telemetry.current,
@@ -61,7 +59,6 @@ export async function getIndustrialInsights(machineState: any, retryCount = 0): 
       model: 'gemini-3.1-pro-preview',
       contents: `Input IoT Data: ${JSON.stringify(iotData)}`,
       config: {
-        temperature: 0.1,
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
         responseSchema: {

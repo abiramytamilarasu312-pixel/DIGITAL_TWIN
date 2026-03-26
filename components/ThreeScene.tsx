@@ -50,11 +50,6 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({ twinState }) => {
                 label: 'Torque Load',
                 value: `${(twinState.telemetry?.spindleLoad || 0).toFixed(1)}%`,
                 icon: Zap
-              },
-              {
-                label: 'Bearing Temp',
-                value: `${(twinState.telemetry?.temperature || 0).toFixed(1)}°C`,
-                icon: Thermometer
               }
             ]
           }

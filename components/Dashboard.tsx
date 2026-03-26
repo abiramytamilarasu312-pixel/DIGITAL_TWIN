@@ -12,7 +12,6 @@ import { calculateToolHealth } from '../services/healthEngine';
 
 import {
 Activity,
-Thermometer,
 Zap,
 ShieldAlert,
 Wifi,
@@ -109,24 +108,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const vibrationValue = twinState.telemetry?.vibration || 0;
   const soundValue = twinState.telemetry?.noiseLevel || 0;
-  const tempValue = twinState.telemetry?.temperature || 0;
   const healthValue = twinState.telemetry?.machineHealth || 0;
 
   const vibrationGood = twinState.config.thresholds.goodRms;
   const vibrationBad = twinState.config.thresholds.badRms;
   const soundLimit = twinState.config.thresholds.soundLimit;
-  const tempLimit = twinState.config.thresholds.temperature;
 
   const calculateOptimization = () => {
-    const { spindleSpeed, feedRate, material, toolGrade } = twinState.predictedSimulation;
+    const { spindleSpeed, feedRate } = twinState.predictedSimulation;
     const baseVibration = 0.08 + (spindleSpeed / 4000) * (feedRate / 400);
-    const ambientTemp = 24;
-    const steadyStateTemp = ambientTemp + (spindleSpeed / 150) * (feedRate / 150) * material.thermalFactor / toolGrade.heatResistance;
     
     return {
       vibration: baseVibration,
-      noise: baseVibration * 0.4,
-      temperature: steadyStateTemp
+      noise: baseVibration * 0.4
     };
   };
 
@@ -153,13 +147,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
     },
     {
       label: 'Alarm Status',
-      value: vibrationValue >= vibrationBad || soundValue >= soundLimit || tempValue >= tempLimit
+      value: vibrationValue >= vibrationBad || soundValue >= soundLimit
         ? 'CRITICAL'
         : vibrationValue >= vibrationGood
         ? 'WARNING'
         : 'NORMAL',
       icon: ShieldAlert,
-      color: vibrationValue >= vibrationBad || soundValue >= soundLimit || tempValue >= tempLimit
+      color: vibrationValue >= vibrationBad || soundValue >= soundLimit
         ? 'text-red-600'
         : vibrationValue >= vibrationGood
         ? 'text-amber-600'
@@ -245,8 +239,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const healthData = calculateToolHealth(
     twinState.telemetry?.vibration || 0,
-    twinState.telemetry?.noiseLevel || 0,
-    twinState.telemetry?.temperature || 0
+    twinState.telemetry?.noiseLevel || 0
   );
 
   const handleDownloadSession = (entry: any) => {
@@ -342,13 +335,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <span className="text-[10px] font-black uppercase tracking-widest">Tool wear suspected</span>
                     </div>
                   )}
-
-                  {tempValue > twinState.config.thresholds.temperature && (
-                    <div className="bg-orange-500/90 backdrop-blur-md text-white px-4 py-2 rounded-xl shadow-lg flex items-center space-x-2 animate-pulse">
-                      <Thermometer size={16} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Overheating detected</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -382,20 +368,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <div
                         className={`h-full transition-all duration-500 ${soundValue > twinState.config.thresholds.soundLimit ? 'bg-red-500' : 'bg-indigo-500'}`}
                         style={{ width: `${Math.min(100, (soundValue / Math.max(soundLimit, 0.01)) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[9px] font-bold text-slate-500 uppercase">Temperature</span>
-                      <Thermometer size={12} className={tempValue > twinState.config.thresholds.temperature ? 'text-red-500' : 'text-orange-500'} />
-                    </div>
-                    <div className="text-xl font-black text-slate-900 font-mono">{tempValue.toFixed(1)}°C</div>
-                    <div className="w-full bg-slate-200 h-1 rounded-full mt-2 overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-500 ${tempValue > twinState.config.thresholds.temperature ? 'bg-red-500' : 'bg-orange-500'}`}
-                        style={{ width: `${Math.min(100, (tempValue / Math.max(tempLimit, 1)) * 100)}%` }}
                       />
                     </div>
                   </div>
@@ -572,65 +544,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   />
                 </div>
               </div>
-
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center">
-                    <Thermometer size={14} className="mr-2 text-orange-500" /> Temperature (°C)
-                  </h4>
-                  <div className="flex items-center space-x-2">
-                    {twinState.telemetry?.optimizedTemperature && tempValue > twinState.telemetry.optimizedTemperature * 1.2 && (
-                      <span className="flex items-center px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-[8px] font-black uppercase animate-pulse">
-                        <ShieldAlert size={10} className="mr-1" /> Wear Warning
-                      </span>
-                    )}
-                    <span className="text-xs font-black text-slate-900 font-mono">{tempValue.toFixed(1)}</span>
-                  </div>
-                </div>
-                <div className="h-48">
-                  <Line
-                    data={{
-                      labels: history.map((h, i) => `${i}s`),
-                      datasets: [{
-                        label: 'Temperature',
-                        data: history.map(h => h.temperature),
-                        borderColor: '#f97316',
-                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 0
-                      },
-                      {
-                        label: 'Optimized Baseline',
-                        data: history.map(h => h.optimizedTemperature || 0),
-                        borderColor: '#3b82f6',
-                        borderDash: [5, 5],
-                        fill: false,
-                        tension: 0.4,
-                        pointRadius: 0,
-                        hidden: !history.some(h => h.optimizedTemperature)
-                      }]
-                    }}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: { legend: { display: false } },
-                      scales: {
-                        x: {
-                          grid: { display: false },
-                          ticks: { font: { size: 8 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }
-                        },
-                        y: {
-                          min: 20,
-                          max: Math.max(50, tempLimit + 10),
-                          grid: { color: '#f1f5f9' },
-                          ticks: { font: { size: 10 } }
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -681,8 +594,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <div className="text-xl font-black text-slate-900">
                       {history.filter(h =>
                         (h.vibration || 0) > vibrationBad ||
-                        (h.noiseLevel || 0) > soundLimit ||
-                        (h.temperature || 0) > tempLimit
+                        (h.noiseLevel || 0) > soundLimit
                       ).length}
                     </div>
                   </div>
@@ -818,13 +730,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                   <input type="range" disabled={twinState.materialTest.isActive} min="0.1" max="5.0" step="0.1" value={twinState.materialTest.customWearMultiplier || 1.0} onChange={(e) => handleTestDataChange('customWearMultiplier', parseFloat(e.target.value))} className="w-full accent-indigo-600 bg-slate-200 rounded-xl h-2" />
                 </div>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center px-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fine-Tune: Heat Multiplier</label>
-                    <span className="text-sm font-black text-slate-900 font-mono">{(twinState.materialTest.customHeatMultiplier || 1.0).toFixed(1)}x</span>
-                  </div>
-                  <input type="range" disabled={twinState.materialTest.isActive} min="0.1" max="5.0" step="0.1" value={twinState.materialTest.customHeatMultiplier || 1.0} onChange={(e) => handleTestDataChange('customHeatMultiplier', parseFloat(e.target.value))} className="w-full accent-amber-500 bg-slate-200 rounded-xl h-2" />
-                </div>
               </div>
 
               <div className="pt-8 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -870,12 +775,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               </div>
 
-              <div className="pt-8 border-t border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-4">
-                {(['NORMAL', 'AGGRESSIVE', 'THERMAL', 'IMPACT'] as const).map((sc) => (
+              <div className="pt-8 border-t border-slate-100 grid grid-cols-2 md:grid-cols-3 gap-4">
+                {(['NORMAL', 'AGGRESSIVE', 'IMPACT'] as const).map((sc) => (
                   <button key={sc} disabled={twinState.materialTest.isActive} onClick={() => handleTestDataChange('scenario', sc)} className={`p-6 rounded-2xl border transition-all flex flex-col items-center justify-center space-y-3 ${twinState.materialTest.scenario === sc ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
                     {sc === 'NORMAL' && <Shield size={18} />}
                     {sc === 'AGGRESSIVE' && <Zap size={18} />}
-                    {sc === 'THERMAL' && <Thermometer size={18} />}
                     {sc === 'IMPACT' && <Activity size={18} />}
                     <span className="text-[10px] font-black uppercase tracking-widest">{sc}</span>
                   </button>
@@ -918,11 +822,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
                   <div className="space-y-2">
-                    <div className="flex justify-between text-[9px] font-black uppercase text-slate-400"><span>Temp Limit</span><span className="text-slate-900">{twinState.config.thresholds.temperature}°C</span></div>
-                    <input type="range" min="30" max="130" step="1" className="w-full accent-red-500 bg-slate-200 rounded-lg h-1.5" value={twinState.config.thresholds.temperature} onChange={(e) => handleThresholdChange('temperature', parseInt(e.target.value))} />
-                  </div>
-
-                  <div className="space-y-2">
                     <div className="flex justify-between text-[9px] font-black uppercase text-slate-400"><span>Vibration RMS Limit</span><span className="text-slate-900">{twinState.config.thresholds.vibrationRms}</span></div>
                     <input type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono text-slate-900 focus:border-indigo-500 outline-none" value={twinState.config.thresholds.vibrationRms} onChange={(e) => handleThresholdChange('vibrationRms', parseFloat(e.target.value))} />
                   </div>
@@ -963,14 +862,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <span className="text-sm font-black text-slate-900 font-mono">{(twinState.config.aiSimulation?.wearRateMultiplier || 1.0).toFixed(1)}x</span>
                     </div>
                     <input type="range" min="0.1" max="10.0" step="0.1" className="w-full accent-indigo-600 bg-slate-200 rounded-xl h-2" value={twinState.config.aiSimulation?.wearRateMultiplier || 1.0} onChange={(e) => handleAISimulationChange('wearRateMultiplier', parseFloat(e.target.value))} />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center px-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Thermal Sensitivity</label>
-                      <span className="text-sm font-black text-slate-900 font-mono">{(twinState.config.aiSimulation?.thermalSensitivity || 1.0).toFixed(1)}x</span>
-                    </div>
-                    <input type="range" min="0.1" max="10.0" step="0.1" className="w-full accent-amber-500 bg-slate-200 rounded-xl h-2" value={twinState.config.aiSimulation?.thermalSensitivity || 1.0} onChange={(e) => handleAISimulationChange('thermalSensitivity', parseFloat(e.target.value))} />
                   </div>
 
                   <div className="space-y-4">
@@ -1150,8 +1041,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               <div>
-                <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Max Temp</div>
-                <div className="text-sm font-black text-slate-900 font-mono">{entry.maxTemperature.toFixed(1)}°C</div>
+                <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Max Sound</div>
+                <div className="text-sm font-black text-slate-900 font-mono">{entry.maxSound.toFixed(3)}</div>
               </div>
 
               <div>
@@ -1390,7 +1281,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </h4>
                     <span className="text-[8px] font-bold text-emerald-600 uppercase">Target Performance</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-white rounded-2xl border border-emerald-100">
                       <div className="text-[8px] font-black text-slate-400 uppercase mb-1">Opt. Vibration</div>
                       <div className="text-lg font-black text-emerald-600 font-mono">
@@ -1401,12 +1292,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <div className="text-[8px] font-black text-slate-400 uppercase mb-1">Opt. Sound</div>
                       <div className="text-lg font-black text-emerald-600 font-mono">
                         {optimized.noise.toFixed(3)}
-                      </div>
-                    </div>
-                    <div className="p-4 bg-white rounded-2xl border border-emerald-100">
-                      <div className="text-[8px] font-black text-slate-400 uppercase mb-1">Opt. Temp</div>
-                      <div className="text-lg font-black text-emerald-600 font-mono">
-                        {optimized.temperature.toFixed(1)}°C
                       </div>
                     </div>
                   </div>
@@ -1708,7 +1593,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       { label: 'Excessive Sound', desc: 'Alert when noise level is too high' },
                       { label: 'Tool Wear Warning', desc: 'Alert when wear exceeds 70%' },
                       { label: 'Machine Critical State', desc: 'Alert on system failure or emergency stop' },
-                      { label: 'Temperature Warning', desc: 'Alert when spindle temperature is high' },
                       { label: 'Tool Breakage Risk', desc: 'Alert when impact forces are detected' }
                     ].map((trigger, i) => (
                       <div key={i} className="flex items-start space-x-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">

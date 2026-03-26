@@ -9,14 +9,12 @@ export interface Material {
   id: string;
   name: string;
   hardnessFactor: number;
-  thermalFactor: number;
 }
 
 export interface ToolGrade {
   id: string;
   name: string;
   durabilityFactor: number;
-  heatResistance: number;
 }
 
 export interface TelemetryData {
@@ -27,13 +25,11 @@ export interface TelemetryData {
   vibration: number;
   vibrationAlert: boolean;
   machineHealth: number;
-  noiseLevel: number;
+  soundLevel: number;
   noiseAlarm: boolean;
-  temperature: number;
   toolWear: number;
   optimizedVibration?: number;
   optimizedNoise?: number;
-  optimizedTemperature?: number;
   current: number;
   powerConsumption: number;
   forces: {
@@ -56,12 +52,11 @@ export interface MaterialTest {
   durationSeconds: number;
   targetWear: number;
   startTime: number | null;
-  scenario?: 'NORMAL' | 'AGGRESSIVE' | 'THERMAL' | 'IMPACT';
+  scenario?: 'NORMAL' | 'AGGRESSIVE' | 'IMPACT';
   testTitle?: string;
   researcherName?: string;
   batchId?: string;
   customWearMultiplier?: number;
-  customHeatMultiplier?: number;
 }
 
 export interface DiscoveredDevice {
@@ -153,12 +148,10 @@ export interface TwinState {
     simulationSpeed: number;
     enabledSensors: {
       vibration: boolean;
-      temperature: boolean;
       forces: boolean;
       spindleLoad: boolean;
     };
     thresholds: {
-      temperature: number;
       vibrationRms: number;
       goodRms: number;
       badRms: number;
@@ -181,7 +174,6 @@ export interface TwinState {
     wifiProtocol: 'HTTP_POLL' | 'WEBSOCKET';
     aiSimulation: {
       wearRateMultiplier: number;
-      thermalSensitivity: number;
       forceImpactFactor: number;
     };
   };

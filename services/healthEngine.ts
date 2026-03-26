@@ -5,9 +5,9 @@ export interface HealthStatus {
   color: string;
 }
 
-export const calculateToolHealth = (vibration: number, sound: number, temperature: number): HealthStatus => {
+export const calculateToolHealth = (vibration: number, sound: number): HealthStatus => {
   // Simple algorithm based on user requirements
-  // Health Score = 100 - vibration_factor - sound_factor - temperature_factor
+  // Health Score = 100 - vibration_factor - sound_factor
   
   let health = 100;
   
@@ -17,10 +17,7 @@ export const calculateToolHealth = (vibration: number, sound: number, temperatur
   // Sound factor: 0-50 is normal, >50 is warning, >80 is critical
   const soundFactor = (sound / 100) * 10;
   
-  // Temperature factor: <40 is normal, >40 is warning, >60 is critical
-  const temperatureFactor = Math.max(0, (temperature - 30) * 0.5);
-  
-  health = health - vibrationFactor - soundFactor - temperatureFactor;
+  health = health - vibrationFactor - soundFactor;
   health = Math.max(0, Math.min(100, health));
   
   let status: HealthStatus['status'] = 'Healthy';

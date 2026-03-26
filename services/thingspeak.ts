@@ -8,10 +8,9 @@ export interface ThingSpeakFeed {
   field2: string; // ALERT LEVEL
   field3: string; // HEALTH
   field4: string; // Sound_Level
-  field5: string; // Temperature
-  field6: string; // TEMP_alarm
-  field7: string; // noise_alarm
-  field8?: string;
+  field5: string; // noise_alarm
+  field6: string; // tool wear (mm)
+  field7?: string;
 }
 
 interface ThingSpeakResponse {
@@ -25,7 +24,6 @@ interface ThingSpeakResponse {
     field5?: string;
     field6?: string;
     field7?: string;
-    field8?: string;
   };
   feeds: ThingSpeakFeed[];
 }
@@ -76,10 +74,9 @@ export const fetchThingSpeakData = async (
       field2: latest.field2 ?? '0',
       field3: latest.field3 ?? '100',
       field4: latest.field4 ?? '0',
-      field5: latest.field5 ?? '24',
+      field5: latest.field5 ?? '0',
       field6: latest.field6 ?? '0',
-      field7: latest.field7 ?? '0',
-      field8: latest.field8
+      field7: latest.field7
     };
   } catch (error) {
     console.error('ThingSpeak Fetch Error:', error);

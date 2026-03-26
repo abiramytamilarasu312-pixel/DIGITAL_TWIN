@@ -15,13 +15,9 @@ export const ProcessHistory: React.FC<ProcessHistoryProps> = ({ history, health,
     if (!hasReceivedInput) return [];
     // Generate some interesting log entries from history data
     return history.slice(-20).reverse().map((h, i) => {
-      let type: 'INFO' | 'WARNING' | 'CRITICAL' = 'INFO';
+      let type: 'INFO' | 'CRITICAL' = 'INFO';
       let message = `System telemetry recorded at ${Math.round(h.rpm)} RPM`;
       
-      if ((h.temperature || 0) > 80) {
-        type = 'WARNING';
-        message = `High thermal threshold detected: ${(h.temperature || 0).toFixed(1)}°C`;
-      }
       if ((h.toolWear || 0) > 60) {
         type = 'CRITICAL';
         message = `Critical Tool Wear Alert: ${(h.toolWear || 0).toFixed(1)}% reached`;
@@ -32,7 +28,7 @@ export const ProcessHistory: React.FC<ProcessHistoryProps> = ({ history, health,
         time: new Date(h.timestamp).toLocaleTimeString(),
         type,
         message,
-        icon: type === 'CRITICAL' ? AlertTriangle : type === 'WARNING' ? AlertTriangle : ShieldCheck
+        icon: type === 'CRITICAL' ? AlertTriangle : ShieldCheck
       };
     });
   }, [history]);
@@ -83,7 +79,6 @@ export const ProcessHistory: React.FC<ProcessHistoryProps> = ({ history, health,
               <div className="flex items-center space-x-4">
                 <div className={`p-1.5 rounded-lg ${
                   event.type === 'CRITICAL' ? 'bg-red-100 text-red-600' :
-                  event.type === 'WARNING' ? 'bg-amber-100 text-amber-600' :
                   'bg-indigo-100 text-indigo-600'
                 }`}>
                   <event.icon size={14} />
@@ -91,7 +86,6 @@ export const ProcessHistory: React.FC<ProcessHistoryProps> = ({ history, health,
                 <div>
                   <div className={`text-[10px] font-black tracking-tight ${
                     event.type === 'CRITICAL' ? 'text-red-600' :
-                    event.type === 'WARNING' ? 'text-amber-600' :
                     'text-slate-900'
                   }`}>
                     {event.message}

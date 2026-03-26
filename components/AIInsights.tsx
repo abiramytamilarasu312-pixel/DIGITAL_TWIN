@@ -53,7 +53,6 @@ export const AIInsights: React.FC<AIInsightsProps> = ({ twinState }) => {
   // Determine top contributing factors based on state thresholds
   const getContributingFactors = () => {
     const factors = [];
-    if ((twinState.telemetry?.temperature || 0) > twinState.config.thresholds.temperature * 0.75) factors.push({ label: 'Thermal Delta', value: `${(twinState.telemetry?.temperature || 0).toFixed(1)}°C`, impact: 'High' });
     if ((twinState.telemetry?.vibration || 0) > twinState.config.thresholds.vibrationRms * 0.6) factors.push({ label: 'Harmonic Stress', value: `${(twinState.telemetry?.vibration || 0).toFixed(2)} RMS`, impact: 'Medium' });
     if ((twinState.telemetry?.toolWear || 0) > 50) factors.push({ label: 'Abrasive Wear', value: `${(twinState.telemetry?.toolWear || 0).toFixed(1)}%`, impact: 'Critical' });
     if ((twinState.telemetry?.spindleLoad || 0) > 70) factors.push({ label: 'Spindle Torque', value: `${(twinState.telemetry?.spindleLoad || 0).toFixed(1)}%`, impact: 'High' });

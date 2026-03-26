@@ -37,7 +37,7 @@ export const MachineModel: React.FC<MachineModelProps> = ({ twinState, onSelectP
   useFrame((state, delta) => {
     const isConventional = twinState.machineType === 'CONVENTIONAL';
     const isRunning = twinState.isMachineOn && (isConventional ? twinState.conventionalMilling.isLiveDemoActive : twinState.status === 'RUNNING');
-    const telemetry = twinState.telemetry || { toolWear: 0, temperature: 24, rpm: 0, vibration: 0, noiseLevel: 0, machineHealth: 100, forces: { fx: 0, fy: 0, fz: 0 } };
+    const telemetry = twinState.telemetry || { toolWear: 0, rpm: 0, vibration: 0, noiseLevel: 0, machineHealth: 100, forces: { fx: 0, fy: 0, fz: 0 } };
     const toolWear = telemetry.toolWear || 0;
     const targetWear = twinState.materialTest?.targetWear || 95;
     const vibRMS = telemetry.vibration || 0;

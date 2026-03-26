@@ -28,10 +28,6 @@ export async function sendAlert(data: any) {
       messages.push(`• Sound Level: ${data.noiseLevel?.toFixed(3)}`);
     }
 
-    if (data.temperature > 35) {
-      messages.push(`• Temperature: ${data.temperature?.toFixed(1)} °C`);
-    }
-
     // ❌ No alert → no email
     if (messages.length === 0) {
       return;
@@ -46,15 +42,13 @@ export async function sendAlert(data: any) {
 
     if (
       data.vibration > 0.3 ||
-      data.noiseLevel > 0.15 ||
-      data.temperature > 35
+      data.noiseLevel > 0.15
     ) {
       statusLabel = 'CRITICAL';
     } 
     else if (
       data.vibration > 0.25 ||
-      data.noiseLevel > 0.10 ||
-      data.temperature > 30
+      data.noiseLevel > 0.10
     ) {
       statusLabel = 'WARNING';
     }

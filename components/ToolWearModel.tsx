@@ -17,28 +17,16 @@ export const ToolWearModel: React.FC<{ twinState: TwinState }> = ({ twinState })
           <Activity size={12} className="mr-2" /> CORE WEAR EQUATION:
         </div>
         <div className="text-lg font-black text-slate-900">
-          dW/dt = (H<sub>m</sub> / D<sub>t</sub>) × L × (1 + αΔT)
+          dW/dt = (H<sub>m</sub> / D<sub>t</sub>) × L
         </div>
         <div className="grid grid-cols-2 gap-x-4 mt-2 text-slate-500 font-bold">
           <span>H<sub>m</sub>: {material.hardnessFactor} (Material Hardness)</span>
           <span>D<sub>t</sub>: {toolGrade.durabilityFactor} (Tool Durability)</span>
           <span>L: {(twinState.telemetry?.spindleLoad || 0).toFixed(1)}% (System Load)</span>
-          <span>ΔT: {(twinState.telemetry?.temperature || 0).toFixed(1)}°C (Thermal Delta)</span>
         </div>
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-             <div className="p-2 bg-amber-50 rounded-lg"><Flame size={14} className="text-amber-600" /></div>
-             <div>
-               <div className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">Thermal Influence</div>
-               <div className="text-[9px] text-slate-400 font-bold uppercase">Activation Energy: High</div>
-             </div>
-          </div>
-          <div className="text-xs font-black text-slate-900">×{(1 + ((twinState.telemetry?.temperature || 0) / 100)).toFixed(2)}</div>
-        </div>
-        
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
              <div className="p-2 bg-indigo-50 rounded-lg"><Activity size={14} className="text-indigo-600" /></div>

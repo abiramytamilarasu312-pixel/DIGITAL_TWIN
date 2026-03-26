@@ -24,7 +24,7 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
   const chartData = history.map(h => ({
     time: new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
     vibration: parseFloat((h.vibration || 0).toFixed(3)),
-    noise: parseFloat((h.noiseLevel || 0).toFixed(3)),
+    noise: parseFloat((h.soundLevel || 0).toFixed(3)),
     health: h.machineHealth
   })).slice(-20);
   const wearVsRmsData = history.map(h => ({

@@ -16,7 +16,6 @@ import emailjs from '@emailjs/browser';
 const estimateToolWearMm = (
   vibration: number,
   noiseLevel: number,
-  temperature: number,
   previousWear: number = 0,
   isRunning: boolean = true
 ): number => {
@@ -30,44 +29,43 @@ const estimateToolWearMm = (
   // Sensor contribution
   const vibrationFactor = Math.max(0, vibration - 0.05) * 0.012;
   const noiseFactor = Math.max(0, noiseLevel - 0.03) * 0.010;
-  const thermalFactor = Math.max(0, temperature - 30) * 0.0008;
 
   // Total increment this cycle
-  const increment = baseIncrement + vibrationFactor + noiseFactor + thermalFactor;
+  const increment = baseIncrement + vibrationFactor + noiseFactor;
 
   // Clamp to a practical demo range
   return Math.min(0.50, Math.max(0, previousWear + increment));
 };
 
 const MATERIALS: Material[] = [
-  { id: 'al6061', name: 'Aluminum 6061', hardnessFactor: 0.7, thermalFactor: 1.5 },
-  { id: 'mild-steel', name: 'Mild Steel', hardnessFactor: 1.0, thermalFactor: 1.0 },
-  { id: 'al7075', name: 'Aluminum 7075-T6', hardnessFactor: 0.85, thermalFactor: 1.3 },
-  { id: 'st1045', name: 'Steel AISI 1045', hardnessFactor: 1.2, thermalFactor: 0.9 },
-  { id: 'st4140', name: 'Chromoly 4140', hardnessFactor: 1.5, thermalFactor: 0.8 },
-  { id: 'ss316', name: 'Stainless 316L', hardnessFactor: 1.1, thermalFactor: 1.2 },
-  { id: 'ti64', name: 'Titanium Ti-6Al-4V', hardnessFactor: 2.2, thermalFactor: 0.4 },
-  { id: 'd2steel', name: 'Tool Steel D2', hardnessFactor: 2.8, thermalFactor: 0.6 },
-  { id: 'in718', name: 'Inconel 718', hardnessFactor: 3.5, thermalFactor: 0.2 },
-  { id: 'ha-x', name: 'Hastelloy X', hardnessFactor: 3.8, thermalFactor: 0.15 },
-  { id: 'gr-25', name: 'Cast Iron Gr 25', hardnessFactor: 1.1, thermalFactor: 1.0 },
-  { id: 'peek', name: 'PEEK (Polymer)', hardnessFactor: 0.3, thermalFactor: 0.1 },
-  { id: 'br360', name: 'Brass C360', hardnessFactor: 0.6, thermalFactor: 2.5 },
+  { id: 'al6061', name: 'Aluminum 6061', hardnessFactor: 0.7 },
+  { id: 'mild-steel', name: 'Mild Steel', hardnessFactor: 1.0 },
+  { id: 'al7075', name: 'Aluminum 7075-T6', hardnessFactor: 0.85 },
+  { id: 'st1045', name: 'Steel AISI 1045', hardnessFactor: 1.2 },
+  { id: 'st4140', name: 'Chromoly 4140', hardnessFactor: 1.5 },
+  { id: 'ss316', name: 'Stainless 316L', hardnessFactor: 1.1 },
+  { id: 'ti64', name: 'Titanium Ti-6Al-4V', hardnessFactor: 2.2 },
+  { id: 'd2steel', name: 'Tool Steel D2', hardnessFactor: 2.8 },
+  { id: 'in718', name: 'Inconel 718', hardnessFactor: 3.5 },
+  { id: 'ha-x', name: 'Hastelloy X', hardnessFactor: 3.8 },
+  { id: 'gr-25', name: 'Cast Iron Gr 25', hardnessFactor: 1.1 },
+  { id: 'peek', name: 'PEEK (Polymer)', hardnessFactor: 0.3 },
+  { id: 'br360', name: 'Brass C360', hardnessFactor: 0.6 },
 ];
 
 const TOOL_GRADES: ToolGrade[] = [
-  { id: 'hss', name: 'HSS (Standard)', durabilityFactor: 0.5, heatResistance: 0.6 },
-  { id: 'uncoated', name: 'Carbide (Uncoated)', durabilityFactor: 2.0, heatResistance: 1.5 },
-  { id: 'carbide', name: 'Carbide (Micrograin)', durabilityFactor: 2.5, heatResistance: 2.0 },
-  { id: 'cobalt', name: 'Cobalt (M42)', durabilityFactor: 1.5, heatResistance: 1.5 },
-  { id: 'ticn', name: 'TiCN Coated', durabilityFactor: 3.2, heatResistance: 2.5 },
-  { id: 'altin', name: 'AlTiN Coated', durabilityFactor: 3.8, heatResistance: 4.5 },
-  { id: 'tialn', name: 'TiAlN (Nano)', durabilityFactor: 4.2, heatResistance: 6.0 },
-  { id: 'cermet', name: 'Cermet (Finishing)', durabilityFactor: 2.3, heatResistance: 3.8 },
-  { id: 'dlc', name: 'DLC Coated', durabilityFactor: 4.8, heatResistance: 1.8 },
-  { id: 'pcd', name: 'PCD Diamond', durabilityFactor: 5.0, heatResistance: 3.0 },
-  { id: 'ceramic', name: 'Ceramic (Si3N4)', durabilityFactor: 1.0, heatResistance: 10.0 },
-  { id: 'cbn', name: 'CBN (High Hardness)', durabilityFactor: 7.0, heatResistance: 6.0 },
+  { id: 'hss', name: 'HSS (Standard)', durabilityFactor: 0.5 },
+  { id: 'uncoated', name: 'Carbide (Uncoated)', durabilityFactor: 2.0 },
+  { id: 'carbide', name: 'Carbide (Micrograin)', durabilityFactor: 2.5 },
+  { id: 'cobalt', name: 'Cobalt (M42)', durabilityFactor: 1.5 },
+  { id: 'ticn', name: 'TiCN Coated', durabilityFactor: 3.2 },
+  { id: 'altin', name: 'AlTiN Coated', durabilityFactor: 3.8 },
+  { id: 'tialn', name: 'TiAlN (Nano)', durabilityFactor: 4.2 },
+  { id: 'cermet', name: 'Cermet (Finishing)', durabilityFactor: 2.3 },
+  { id: 'dlc', name: 'DLC Coated', durabilityFactor: 4.8 },
+  { id: 'pcd', name: 'PCD Diamond', durabilityFactor: 5.0 },
+  { id: 'ceramic', name: 'Ceramic (Si3N4)', durabilityFactor: 1.0 },
+  { id: 'cbn', name: 'CBN (High Hardness)', durabilityFactor: 7.0 },
 ];
 
 const INITIAL_TELEMETRY: TelemetryData = {
@@ -78,13 +76,11 @@ const INITIAL_TELEMETRY: TelemetryData = {
   vibration: 0,
   vibrationAlert: false,
   machineHealth: 100,
-  noiseLevel: 0,
+  soundLevel: 0,
   noiseAlarm: false,
-  temperature: 24,
   toolWear: 0,
   optimizedVibration: 0,
   optimizedNoise: 0,
-  optimizedTemperature: 24,
   current: 0,
   powerConsumption: 0,
   forces: { fx: 0, fy: 0, fz: 0 }
@@ -141,8 +137,7 @@ const INITIAL_STATE: TwinState = {
     testTitle: 'Stability Analysis',
     researcherName: 'Dr. Edge Engineer',
     batchId: 'B-001',
-    customWearMultiplier: 1.0,
-    customHeatMultiplier: 1.0
+    customWearMultiplier: 1.0
   },
   manualControl: {
     spindleRpm: 1200,
@@ -176,7 +171,6 @@ const INITIAL_STATE: TwinState = {
     simulationSpeed: 1.0,
     enabledSensors: {
       vibration: true,
-      temperature: true,
       forces: true,
       spindleLoad: true
     },
@@ -184,7 +178,6 @@ const INITIAL_STATE: TwinState = {
       vibrationRms: 0.30,
       goodRms: 0.30,
       badRms: 0.40,
-      temperature: 35,
       force: 450,
       forceX: 250,
       forceY: 250,
@@ -204,7 +197,6 @@ const INITIAL_STATE: TwinState = {
     wifiProtocol: 'HTTP_POLL',
     aiSimulation: {
       wearRateMultiplier: 1.0,
-      thermalSensitivity: 1.0,
       forceImpactFactor: 1.0
     }
   },
@@ -218,7 +210,7 @@ const INITIAL_STATE: TwinState = {
 
 interface Alarm {
   type: 'CRITICAL' | 'WARNING';
-  category: 'THERMAL' | 'VIBRATION' | 'WEAR' | 'SYSTEM' | 'LOAD' | 'FORCE' | 'SPEED' | 'NOISE';
+  category: 'VIBRATION' | 'WEAR' | 'SYSTEM' | 'LOAD' | 'FORCE' | 'SPEED' | 'NOISE';
   message: string;
   recommendations: string[];
 }
@@ -239,7 +231,6 @@ interface SessionLogEntry {
   endTime: number | null;
   durationSec: number;
   maxVibration: number;
-  maxTemperature: number;
   maxSound: number;
   finalHealth: number;
   status: 'COMPLETED' | 'ABORTED' | 'RUNNING';
@@ -267,21 +258,16 @@ const generatePredictionData = (
   const baseWearRate = 0.05; 
   const wearRate = baseWearRate * (feedRate / 200) * depthOfCut * (spindleSpeed / 800) * material.hardnessFactor / toolGrade.durabilityFactor;
   
-  const ambientTemp = 24;
-  const steadyStateTemp = ambientTemp + (spindleSpeed / 150) * (feedRate / 150) * material.thermalFactor / toolGrade.heatResistance;
-  
   const baseVibration = 0.08 + (spindleSpeed / 4000) * (feedRate / 400);
 
   while (time < 3600) { 
     const wear = currentWear;
-    const temp = ambientTemp + (steadyStateTemp - ambientTemp) * (1 - Math.exp(-time / 30)); 
     const vib = baseVibration * (1 + (wear / 100) * 1.5) + (Math.random() * 0.01);
     const sound = (vib * 0.4) + (Math.random() * 0.005);
     
     // Optimized baseline values (ideal conditions)
     const optVib = baseVibration;
     const optSound = baseVibration * 0.4;
-    const optTemp = ambientTemp + (steadyStateTemp - ambientTemp) * (1 - Math.exp(-time / 30)); // Temp is already quite optimized in this model
 
     const load = Math.min(100, (feedRate / 400) * depthOfCut * 15 * (1 + wear / 150));
     
@@ -293,13 +279,11 @@ const generatePredictionData = (
       vibration: vib,
       vibrationAlert: vib > vibrationThreshold,
       machineHealth: Math.max(0, 100 - wear),
-      noiseLevel: sound,
+      soundLevel: sound,
       noiseAlarm: sound > soundThreshold,
-      temperature: temp,
       toolWear: wear,
       optimizedVibration: optVib,
       optimizedNoise: optSound,
-      optimizedTemperature: optTemp,
       current: (spindleSpeed / 1200) * 4 + (feedRate / 150),
       powerConsumption: (spindleSpeed / 1200) * 1.5 + (feedRate / 400),
       forces: {
@@ -390,8 +374,7 @@ useEffect(() => {
             machine_name: twinState.name,
             timestamp: new Date(now).toLocaleString(),
             vibration: twinState.telemetry.vibration?.toFixed(3),
-            sound: twinState.telemetry.noiseLevel?.toFixed(3),
-            temperature: twinState.telemetry.temperature?.toFixed(1),
+            sound: twinState.telemetry.soundLevel?.toFixed(3),
             health: twinState.telemetry.machineHealth?.toFixed(1),
             rpm: twinState.telemetry.rpm?.toFixed(0)
           } , {
@@ -539,7 +522,6 @@ useEffect(() => {
         else if (header.includes('feed')) row.feedRate = val;
         else if (header.includes('load')) row.spindleLoad = val;
         else if (header.includes('vibration') || header.includes('rms')) row.vibration = val;
-        else if (header.includes('temp')) row.temperature = val;
         else if (header.includes('wear')) row.toolWear = val;
         else if (header.includes('current')) row.current = val;
         else if (header.includes('power')) row.powerConsumption = val;
@@ -554,8 +536,6 @@ useEffect(() => {
         else if (header === 'field2') row.alertLevel = val;      // ALERT LEVEL
         else if (header === 'field3') row.machineHealth = val;   // HEALTH
         else if (header === 'field4') row.noiseLevel = val;      // Sound_Level
-        else if (header === 'field5') row.temperature = val;     // Temperature
-        else if (header === 'field6') row.tempAlarmFlag = val;   // TEMP_alarm
         else if (header === 'field7') row.noiseAlarmFlag = val;  // noise_alarm
       });
 
@@ -563,13 +543,11 @@ useEffect(() => {
       row.feedRate = row.feedRate ?? 0;
       row.spindleLoad = row.spindleLoad ?? 0;
       row.vibration = row.vibration ?? 0;
-      row.temperature = row.temperature ?? 24;
       
       if (row.toolWear === undefined || row.toolWear === null || isNaN(row.toolWear)) {
         row.toolWear = estimateToolWearMm(
           row.vibration,
           row.noiseLevel,
-          row.temperature,
           previousWearMm,
           true
         );
@@ -710,16 +688,14 @@ useEffect(() => {
       const thresholds = stateRef.current.config.thresholds;
 
       const alertLevel =
-        telemetry.temperature > thresholds.temperature ||
         telemetry.vibration > thresholds.badRms ||
-        telemetry.noiseLevel > thresholds.soundLimit
+        telemetry.soundLevel > thresholds.soundLimit
           ? 2
           : telemetry.vibration > thresholds.goodRms
           ? 1
           : 0;
 
-      const tempAlarmFlag = telemetry.temperature > thresholds.temperature ? 1 : 0;
-      const noiseAlarmFlag = telemetry.noiseLevel > thresholds.soundLimit ? 1 : 0;
+      const noiseAlarmFlag = telemetry.soundLevel > thresholds.soundLimit ? 1 : 0;
 
       const baseUrl = 'https://api.thingspeak.com/update';
       const params = new URLSearchParams({
@@ -727,10 +703,9 @@ useEffect(() => {
         field1: (telemetry.vibration || 0).toFixed(3),        // RMS
         field2: alertLevel.toString(),                        // ALERT LEVEL
         field3: (telemetry.machineHealth || 100).toFixed(1), // HEALTH
-        field4: (telemetry.noiseLevel || 0).toFixed(3),      // Sound_Level
-        field5: (telemetry.temperature || 0).toFixed(2),     // Temperature
-        field6: tempAlarmFlag.toString(),                    // TEMP_alarm
-        field7: noiseAlarmFlag.toString()                    // noise_alarm
+        field4: (telemetry.soundLevel || 0).toFixed(3),      // Sound_Level
+        field5: noiseAlarmFlag.toString(),
+        field6: (telemetry.toolWear || 0).toFixed(3)
       });
 
       const response = await fetch(`${baseUrl}?${params.toString()}`);
@@ -839,22 +814,18 @@ useEffect(() => {
         // field2 = ALERT LEVEL
         // field3 = HEALTH
         // field4 = Sound_Level
-        // field5 = Temperature
-        // field6 = TEMP_alarm
-        // field7 = noise_alarm
+        // field5 = noise_alarm
+        // field6 = tool_wear
 
         const vibration = parseFloat(data.field1) || 0;
         const alertLevel = parseFloat(data.field2) || 0;
         const healthFromESP = parseFloat(data.field3) || 100;
         const sound = parseFloat(data.field4) || 0;
-        const isRunningESP = vibration > 0.05;
-        const temperature = isRunningESP ? (parseFloat(data.field5) || 24) : 24;
-        const tempAlarm = parseFloat(data.field6) || 0;
-        const noiseAlarm = parseFloat(data.field7) || 0;
+        const noiseAlarm = parseFloat(data.field5) || 0;
+        const toolWear = parseFloat(data.field6) || 0;
         const estimatedWearMm = estimateToolWearMm(
           vibration,
           sound,
-          temperature,
           stateRef.current.telemetry.toolWear || 0,
           vibration > 0.02
         );
@@ -863,16 +834,15 @@ useEffect(() => {
           ...stateRef.current.telemetry,
           timestamp: Date.now(),
           vibration,
-          noiseLevel: sound,
-          temperature,
-          toolWear: estimatedWearMm,
+          soundLevel: sound,
+          toolWear: toolWear,
           machineHealth: healthFromESP,
           vibrationAlert: vibration > stateRef.current.config.thresholds.vibrationRms,
           noiseAlarm: noiseAlarm === 1,
         };
 
         let health = MachineHealth.HEALTHY;
-        if (healthFromESP < 50 || alertLevel >= 2 || tempAlarm === 1 || noiseAlarm === 1) {
+        if (healthFromESP < 50 || alertLevel >= 2 || noiseAlarm === 1) {
           health = MachineHealth.CRITICAL;
         } else if (healthFromESP < 70 || alertLevel === 1) {
           health = MachineHealth.WARNING;
@@ -981,8 +951,7 @@ useEffect(() => {
             currentSessionRef.current = {
               ...currentSessionRef.current,
               maxVibration: Math.max(currentSessionRef.current.maxVibration, nextTele.vibration || 0),
-              maxTemperature: Math.max(currentSessionRef.current.maxTemperature, nextTele.temperature || 0),
-              maxSound: Math.max(currentSessionRef.current.maxSound, nextTele.noiseLevel || 0),
+              maxSound: Math.max(currentSessionRef.current.maxSound, nextTele.soundLevel || 0),
               finalHealth: nextTele.machineHealth || 100,
               fullHistory: [...(currentSessionRef.current.fullHistory || []), nextTele]
             };
@@ -1015,15 +984,14 @@ useEffect(() => {
             ...data[currentIndex],
             timestamp: Date.now(),
             vibrationAlert: (data[currentIndex].vibration || 0) > prev.config.thresholds.vibrationRms,
-            noiseAlarm: (data[currentIndex].noiseLevel || 0) > prev.config.thresholds.soundLimit
+            noiseAlarm: (data[currentIndex].soundLevel || 0) > prev.config.thresholds.soundLimit
           };
 
           if (currentSessionRef.current && prev.status === 'RUNNING') {
             currentSessionRef.current = {
               ...currentSessionRef.current,
               maxVibration: Math.max(currentSessionRef.current.maxVibration, nextTele.vibration || 0),
-              maxTemperature: Math.max(currentSessionRef.current.maxTemperature, nextTele.temperature || 0),
-              maxSound: Math.max(currentSessionRef.current.maxSound, nextTele.noiseLevel || 0),
+              maxSound: Math.max(currentSessionRef.current.maxSound, nextTele.soundLevel || 0),
               finalHealth: nextTele.machineHealth || 100,
               fullHistory: [...(currentSessionRef.current.fullHistory || []), nextTele]
            };
@@ -1043,13 +1011,6 @@ useEffect(() => {
                 category: 'WEAR',
                 message: `CSV replay limit: Tool wear reached ${(nextTele.toolWear || 0).toFixed(1)}%`,
                 recommendations: ['Tool change required']
-              };
-            } else if ((nextTele.temperature || 0) > thresholds.temperature) {
-              alarm = {
-                type: 'CRITICAL',
-                category: 'THERMAL',
-                message: `CSV replay limit: Temperature reached ${(nextTele.temperature || 0).toFixed(1)}°C`,
-                recommendations: ['Check cooling']
               };
             } else if (enabledSensors.vibration && nextTele.vibration > thresholds.vibrationRms) {
               alarm = {
@@ -1075,11 +1036,11 @@ useEffect(() => {
                   'Verify material hardness settings'
                 ]
               };
-            } else if ((nextTele.noiseLevel || 0) > thresholds.soundLimit) {
+            } else if ((nextTele.soundLevel || 0) > thresholds.soundLimit) {
               alarm = {
                 type: 'CRITICAL',
                 category: 'NOISE',
-                message: `CSV replay limit: Sound level reached ${(nextTele.noiseLevel || 0).toFixed(2)}`,
+                message: `CSV replay limit: Sound level reached ${(nextTele.soundLevel || 0).toFixed(2)}`,
                 recommendations: ['Inspect tool condition and cutting stability']
               };
             }
@@ -1098,20 +1059,18 @@ useEffect(() => {
 
           let health = MachineHealth.HEALTHY;
           if (
-            (nextTele.temperature || 0) > thresholds.temperature * 0.8 ||
             (nextTele.toolWear || 0) > thresholds.toolWear * 0.8 ||
             (nextTele.vibration || 0) > thresholds.vibrationRms ||
-            (nextTele.noiseLevel || 0) > thresholds.soundLimit * 0.8 ||
+            (nextTele.soundLevel || 0) > thresholds.soundLimit * 0.8 ||
             (nextTele.spindleLoad || 0) > thresholds.spindleLoadLimit * 0.8
           ) {
             health = MachineHealth.WARNING;
           }
 
           if (
-            (nextTele.temperature || 0) > thresholds.temperature ||
             (nextTele.toolWear || 0) >= thresholds.toolWear ||
             (nextTele.vibration || 0) > thresholds.badRms ||
-            (nextTele.noiseLevel || 0) > thresholds.soundLimit ||
+            (nextTele.soundLevel || 0) > thresholds.soundLimit ||
             (nextTele.spindleLoad || 0) > thresholds.spindleLoadLimit
           ) {
             health = MachineHealth.CRITICAL;
@@ -1131,8 +1090,7 @@ useEffect(() => {
           startTime,
           durationSeconds,
           targetWear: testTargetWear,
-          customWearMultiplier: cWear,
-          customHeatMultiplier: cHeat
+          customWearMultiplier: cWear
         } = prev.materialTest;
         const scenario = prev.materialTest.scenario || 'NORMAL';
 
@@ -1167,12 +1125,10 @@ useEffect(() => {
 
         const loadMod = material.hardnessFactor || 1;
         let wearMultiplier = (testActive ? 8 : 1) * (aiSimulation?.wearRateMultiplier || 1.0);
-        let heatMultiplier = 1 * (aiSimulation?.thermalSensitivity || 1.0);
         let forceMultiplier = 1 * (aiSimulation?.forceImpactFactor || 1.0);
 
         if (testActive) {
           wearMultiplier *= cWear || 1.0;
-          heatMultiplier *= cHeat || 1.0;
         }
 
         if (testActive) {
@@ -1181,21 +1137,12 @@ useEffect(() => {
               wearMultiplier *= 3.0;
               forceMultiplier = 2.2;
               break;
-            case 'THERMAL':
-              heatMultiplier = 3.5;
-              wearMultiplier *= 1.5;
-              break;
             case 'IMPACT':
               wearMultiplier *= 6.0;
               forceMultiplier = 3.5;
               break;
           }
         }
-
-        const heatMod =
-          ((loadMod / (material.thermalFactor || 1)) / (toolGrade.heatResistance || 1)) *
-          heatMultiplier *
-          simulationSpeed;
 
         const wearMod =
           (loadMod / (toolGrade.durabilityFactor || 1)) *
@@ -1222,15 +1169,8 @@ useEffect(() => {
             : noise(0.05, 0.02),
           vibrationAlert: false,
           machineHealth: Math.max(0, 100 - (prev.telemetry.toolWear * 0.5)),
-          noiseLevel: isRunning ? noise(0.10 + (wearMod * 2), 0.03) : 0.03,
+          soundLevel: isRunning ? noise(0.10 + (wearMod * 2), 0.03) : 0.03,
           noiseAlarm: false,
-          temperature: enabledSensors.temperature
-            ? (
-                isRunning
-                  ? Math.min(135, prev.telemetry.temperature + (1.2 * heatMod))
-                  : 24
-              )
-            : 24,
           toolWear: estimateToolWearMm(
             isRunning && enabledSensors.vibration
               ? (
@@ -1240,13 +1180,6 @@ useEffect(() => {
                 )
               : noise(0.05, 0.02),
             isRunning ? noise(0.10 + (wearMod * 2), 0.03) : 0.03,
-            enabledSensors.temperature
-              ? (
-                  isRunning
-                    ? Math.min(135, prev.telemetry.temperature + (1.2 * heatMod))
-                    : 24
-                )
-              : 24,
             prev.telemetry.toolWear,
             isRunning
           ),
@@ -1263,15 +1196,14 @@ useEffect(() => {
           currentSessionRef.current = {
             ...currentSessionRef.current,
             maxVibration: Math.max(currentSessionRef.current.maxVibration, nextTele.vibration || 0),
-            maxTemperature: Math.max(currentSessionRef.current.maxTemperature, nextTele.temperature || 0),
-            maxSound: Math.max(currentSessionRef.current.maxSound, nextTele.noiseLevel || 0),
+            maxSound: Math.max(currentSessionRef.current.maxSound, nextTele.soundLevel || 0),
             finalHealth: nextTele.machineHealth || 100,
             fullHistory: [...(currentSessionRef.current.fullHistory || []), nextTele]
           };
         }
 
         nextTele.vibrationAlert = nextTele.vibration > thresholds.vibrationRms;
-        nextTele.noiseAlarm = nextTele.noiseLevel > thresholds.soundLimit;
+        nextTele.noiseAlarm = nextTele.soundLevel > thresholds.soundLimit;
 
         setHistory(h => [...h, nextTele].slice(-200));
         sendAlert(nextTele);
@@ -1292,13 +1224,6 @@ useEffect(() => {
               category: 'WEAR',
               message: `Limit exceeded: Tool wear reached ${(nextTele.toolWear || 0).toFixed(1)}%`,
               recommendations: ['Tool change mandatory']
-            };
-          } else if (enabledSensors.temperature && nextTele.temperature > thresholds.temperature) {
-            alarm = {
-              type: 'CRITICAL',
-              category: 'THERMAL',
-              message: `Limit exceeded: Temperature reached ${(nextTele.temperature || 0).toFixed(1)}°C`,
-              recommendations: ['Check cooling systems']
             };
           } else if (enabledSensors.vibration && nextTele.vibration > thresholds.vibrationRms) {
             alarm = {
@@ -1324,11 +1249,11 @@ useEffect(() => {
                 'Inspect spindle motor and drive system'
               ]
             };
-          } else if (nextTele.noiseLevel > thresholds.soundLimit) {
+          } else if (nextTele.soundLevel > thresholds.soundLimit) {
             alarm = {
               type: 'CRITICAL',
               category: 'NOISE',
-              message: `Limit exceeded: Sound level reached ${(nextTele.noiseLevel || 0).toFixed(2)}`,
+              message: `Limit exceeded: Sound level reached ${(nextTele.soundLevel || 0).toFixed(2)}`,
               recommendations: ['Inspect cutting condition']
             };
           } else if (
@@ -1358,20 +1283,18 @@ useEffect(() => {
 
         let health = MachineHealth.HEALTHY;
         if (
-          nextTele.temperature > thresholds.temperature * 0.8 ||
           nextTele.toolWear > thresholds.toolWear * 0.8 ||
           nextTele.vibration > thresholds.vibrationRms ||
-          nextTele.noiseLevel > thresholds.soundLimit * 0.8 ||
+          nextTele.soundLevel > thresholds.soundLimit * 0.8 ||
           (nextTele.spindleLoad || 0) > thresholds.spindleLoadLimit * 0.8
         ) {
           health = MachineHealth.WARNING;
         }
 
         if (
-          nextTele.temperature > thresholds.temperature ||
           nextTele.toolWear >= thresholds.toolWear ||
           nextTele.vibration > thresholds.badRms ||
-          nextTele.noiseLevel > thresholds.soundLimit ||
+          nextTele.soundLevel > thresholds.soundLimit ||
           (nextTele.spindleLoad || 0) > thresholds.spindleLoadLimit
         ) {
           health = MachineHealth.CRITICAL;
@@ -1421,7 +1344,6 @@ useEffect(() => {
       endTime: null,
       durationSec: 0,
       maxVibration: 0,
-      maxTemperature: 0,
       maxSound: 0,
       finalHealth: twinState.telemetry.machineHealth || 100,
       status: 'RUNNING',
