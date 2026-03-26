@@ -107,7 +107,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>('TWIN');
 
   const vibrationValue = twinState.telemetry?.vibration || 0;
-  const soundValue = twinState.telemetry?.noiseLevel || 0;
+  const soundValue = twinState.telemetry?.soundLevel || 0;
   const healthValue = twinState.telemetry?.machineHealth || 0;
 
   const vibrationGood = twinState.config.thresholds.goodRms;
@@ -239,7 +239,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const healthData = calculateToolHealth(
     twinState.telemetry?.vibration || 0,
-    twinState.telemetry?.noiseLevel || 0
+    twinState.telemetry?.soundLevel || 0
   );
 
   const handleDownloadSession = (entry: any) => {
@@ -476,7 +476,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         },
                         y: {
                           min: 0,
-                          max: Math.max(1, vibrationBad * 2),
+                          max: 1.555,
                           grid: { color: '#f1f5f9' },
                           ticks: { font: { size: 10 } }
                         }
@@ -506,7 +506,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       labels: history.map((h, i) => `${i}s`),
                       datasets: [{
                         label: 'Sound',
-                        data: history.map(h => h.noiseLevel),
+                        data: history.map(h => h.soundLevel),
                         borderColor: '#6366f1',
                         backgroundColor: 'rgba(99, 102, 241, 0.1)',
                         fill: true,
@@ -535,7 +535,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         },
                         y: {
                           min: 0,
-                          max: Math.max(0.3, soundLimit * 2),
+                          max: 2.255,
                           grid: { color: '#f1f5f9' },
                           ticks: { font: { size: 10 } }
                         }
@@ -594,7 +594,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <div className="text-xl font-black text-slate-900">
                       {history.filter(h =>
                         (h.vibration || 0) > vibrationBad ||
-                        (h.noiseLevel || 0) > soundLimit
+                        (h.soundLevel || 0) > soundLimit
                       ).length}
                     </div>
                   </div>
@@ -648,14 +648,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           type: 'linear',
                           position: 'bottom',
                           min: 0,
-                          max: 0.8,
+                          max: 1.5,
                           title: { display: true, text: 'Tool Wear (mm)', font: { size: 10, weight: 'bold' } },
                           grid: { color: '#f1f5f9' },
                           ticks: { font: { size: 10 } }
                         },
                         y: {
                           min: 0,
-                          max: 1.3,
+                          max: 0.85,
                           title: { display: true, text: 'RMS (Vibration)', font: { size: 10, weight: 'bold' } },
                           grid: { color: '#f1f5f9' },
                           ticks: { font: { size: 10 } }

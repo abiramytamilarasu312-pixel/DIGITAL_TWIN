@@ -15,7 +15,7 @@ import emailjs from '@emailjs/browser';
 
 const estimateToolWearMm = (
   vibration: number,
-  noiseLevel: number,
+  soundLevel: number,
   previousWear: number = 0,
   isRunning: boolean = true
 ): number => {
@@ -28,10 +28,10 @@ const estimateToolWearMm = (
 
   // Sensor contribution
   const vibrationFactor = Math.max(0, vibration - 0.05) * 0.012;
-  const noiseFactor = Math.max(0, noiseLevel - 0.03) * 0.010;
+  const soundFactor = Math.max(0, soundLevel - 0.03) * 0.010;
 
   // Total increment this cycle
-  const increment = baseIncrement + vibrationFactor + noiseFactor;
+  const increment = baseIncrement + vibrationFactor + soundFactor;
 
   // Clamp to a practical demo range
   return Math.min(0.50, Math.max(0, previousWear + increment));
@@ -526,7 +526,7 @@ useEffect(() => {
         else if (header.includes('current')) row.current = val;
         else if (header.includes('power')) row.powerConsumption = val;
         else if (header.includes('health')) row.machineHealth = val;
-        else if (header.includes('sound') || header.includes('noise')) row.noiseLevel = val;
+        else if (header.includes('sound') || header.includes('noise')) row.soundLevel = val;
         else if (header.includes('fx')) row.forces.fx = val;
         else if (header.includes('fy')) row.forces.fy = val;
         else if (header.includes('fz')) row.forces.fz = val;
@@ -535,7 +535,7 @@ useEffect(() => {
         else if (header === 'field1') row.vibration = val;       // RMS
         else if (header === 'field2') row.alertLevel = val;      // ALERT LEVEL
         else if (header === 'field3') row.machineHealth = val;   // HEALTH
-        else if (header === 'field4') row.noiseLevel = val;      // Sound_Level
+        else if (header === 'field4') row.soundLevel = val;      // Sound_Level
         else if (header === 'field7') row.noiseAlarmFlag = val;  // noise_alarm
       });
 
@@ -547,7 +547,7 @@ useEffect(() => {
       if (row.toolWear === undefined || row.toolWear === null || isNaN(row.toolWear)) {
         row.toolWear = estimateToolWearMm(
           row.vibration,
-          row.noiseLevel,
+          row.soundLevel,
           previousWearMm,
           true
         );
@@ -558,12 +558,12 @@ useEffect(() => {
       row.current = row.current ?? 0;
       row.powerConsumption = row.powerConsumption ?? 0;
       row.machineHealth = row.machineHealth ?? 100;
-      row.noiseLevel = row.noiseLevel ?? 0;
+      row.soundLevel = row.soundLevel ?? 0;
 
       row.vibrationAlert = row.vibration > stateRef.current.config.thresholds.vibrationRms;
       row.noiseAlarm =
         row.noiseAlarmFlag === 1 ||
-        row.noiseLevel > stateRef.current.config.thresholds.soundLimit;
+        row.soundLevel > stateRef.current.config.thresholds.soundLimit;
 
       return row as TelemetryData;
     });

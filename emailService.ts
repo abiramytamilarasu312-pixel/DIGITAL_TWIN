@@ -25,7 +25,7 @@ export async function sendAlert(data: any) {
     }
 
     if (data.noiseAlarm) {
-      messages.push(`• Sound Level: ${data.noiseLevel?.toFixed(3)}`);
+      messages.push(`• Sound Level: ${data.soundLevel?.toFixed(3)}`);
     }
 
     // ❌ No alert → no email
@@ -42,13 +42,13 @@ export async function sendAlert(data: any) {
 
     if (
       data.vibration > 0.3 ||
-      data.noiseLevel > 0.15
+      data.soundLevel > 0.15
     ) {
       statusLabel = 'CRITICAL';
     } 
     else if (
       data.vibration > 0.25 ||
-      data.noiseLevel > 0.10
+      data.soundLevel > 0.10
     ) {
       statusLabel = 'WARNING';
     }

@@ -51,7 +51,7 @@ export async function getIndustrialInsights(machineState: any, retryCount = 0): 
       vibration: machineState.telemetry.vibration,
       rpm: machineState.telemetry.rpm,
       current: machineState.telemetry.current,
-      noiseLevel: machineState.telemetry.noiseLevel,
+      soundLevel: machineState.telemetry.soundLevel,
       timestamp: new Date(machineState.telemetry.timestamp).toISOString()
     };
 

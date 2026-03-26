@@ -37,11 +37,11 @@ export const MachineModel: React.FC<MachineModelProps> = ({ twinState, onSelectP
   useFrame((state, delta) => {
     const isConventional = twinState.machineType === 'CONVENTIONAL';
     const isRunning = twinState.isMachineOn && (isConventional ? twinState.conventionalMilling.isLiveDemoActive : twinState.status === 'RUNNING');
-    const telemetry = twinState.telemetry || { toolWear: 0, rpm: 0, vibration: 0, noiseLevel: 0, machineHealth: 100, forces: { fx: 0, fy: 0, fz: 0 } };
+    const telemetry = twinState.telemetry || { toolWear: 0, rpm: 0, vibration: 0, soundLevel: 0, machineHealth: 100, forces: { fx: 0, fy: 0, fz: 0 } };
     const toolWear = telemetry.toolWear || 0;
     const targetWear = twinState.materialTest?.targetWear || 95;
     const vibRMS = telemetry.vibration || 0;
-    const soundLevel = telemetry.noiseLevel || 0;
+    const soundLevel = telemetry.soundLevel || 0;
     const machineHealth = telemetry.machineHealth || 100;
     
     // Step 1: Define Vibration Levels
@@ -455,7 +455,7 @@ export const MachineModel: React.FC<MachineModelProps> = ({ twinState, onSelectP
             </Text>
             {twinState.machineType === 'CONVENTIONAL' && (
               <mesh position={[0, -0.1, 0]}>
-                <boxGeometry args={[Math.min(2, (twinState.telemetry?.noiseLevel || 0) / 50), 0.05, 0.05]} />
+                <boxGeometry args={[Math.min(2, (twinState.telemetry?.soundLevel || 0) / 50), 0.05, 0.05]} />
                 <meshStandardMaterial color="#3b82f6" emissive="#3b82f6" emissiveIntensity={2} />
               </mesh>
             )}
