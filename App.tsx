@@ -1172,10 +1172,10 @@ useEffect(() => {
                   : noise(Math.min(2.5, prev.telemetry.vibration + (0.02 * simulationSpeed * loadMod * forceMultiplier)), 0.01)
               )
             : noise(0.05, 0.02),
-          vibrationAlert: false,
+          vibrationAlert: (prev.telemetry.vibration > 0.3),
           machineHealth: Math.max(0, 100 - (prev.telemetry.toolWear * 0.5)),
           soundLevel: isRunning ? noise(0.10 + (wearMod * 2), 0.03) : 0.03,
-          noiseAlarm: false,
+          noiseAlarm: (prev.telemetry.soundLevel > 0.15),
           toolWear: estimateToolWearMm(
             isRunning && enabledSensors.vibration
               ? (
