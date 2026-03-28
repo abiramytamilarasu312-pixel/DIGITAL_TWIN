@@ -359,7 +359,11 @@ useEffect(() => {
     setNotifications(prev => [newNotif, ...prev].slice(0, 5));
 
     // Send Email Notification if critical or warning
-    if (twinState.manualControl.notificationEmails.length > 0) {
+    if (
+      type === 'CRITICAL' &&
+      (category === 'VIBRATION' || category === 'NOISE') &&
+      twinState.manualControl.notificationEmails.length > 0
+    ) {
       const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
       const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
       const userId = import.meta.env.VITE_EMAILJS_USER_ID;
@@ -536,7 +540,8 @@ useEffect(() => {
         else if (header === 'field2') row.alertLevel = val;      // ALERT LEVEL
         else if (header === 'field3') row.machineHealth = val;   // HEALTH
         else if (header === 'field4') row.soundLevel = val;      // Sound_Level
-        else if (header === 'field7') row.noiseAlarmFlag = val;  // noise_alarm
+        else if (header === 'field5') row.noiseAlarmFlag = val;  // noise_alarm
+        else if (header === 'field6') row.toolWear = val;        // tool_wear
       });
 
       row.rpm = row.rpm ?? 0;

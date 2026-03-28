@@ -47,8 +47,8 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-            <XAxis dataKey="time" hide />
-            <YAxis hide domain={[0, 1.555]} />
+            <XAxis dataKey="time" />
+            <YAxis domain={[0, 1.555]} />
             <Tooltip 
                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '10px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                itemStyle={{ color: '#4f46e5' }}
@@ -64,8 +64,8 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-            <XAxis dataKey="time" hide />
-            <YAxis hide domain={[0, 2.255]} />
+            <XAxis dataKey="time" />
+            <YAxis domain={[0, 2.255]} />
             <Tooltip 
                contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '10px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                itemStyle={{ color: '#06b6d4' }}
@@ -88,7 +88,7 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
               type="number"
               dataKey="toolWear"
               name="Tool Wear"
-              domain={[0, 0.5]}
+              domain={[0, 1.5]}
               label={{ value: 'Tool Wear (mm)', position: 'insideBottom', offset: -5 }}
             />
             
@@ -96,6 +96,7 @@ export const TelemetryCharts: React.FC<TelemetryChartsProps> = ({ history }) => 
               type="number"
               dataKey="rms"
               name="RMS"
+              domain={[0, 0.85]}
               label={{ value: 'RMS (Vibration)', angle: -90, position: 'insideLeft' }}
             />
 
