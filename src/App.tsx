@@ -7,17 +7,18 @@ import { parseCSVData } from './services/csvService';
 import HealthGauge from './components/HealthGauge';
 import TelemetryCharts from './components/TelemetryCharts';
 
-const DEFAULT_CSV = `timestamp,vibration,soundLevel,toolWear,rpm
-2026-04-01T12:00:00Z,0.2,0.1,0.05,1500
-2026-04-01T12:00:01Z,0.25,0.15,0.08,1505
-2026-04-01T12:00:02Z,0.3,0.2,0.12,1510
-2026-04-01T12:00:03Z,0.35,0.25,0.18,1508
-2026-04-01T12:00:04Z,0.4,0.3,0.25,1512
-2026-04-01T12:00:05Z,0.45,0.35,0.32,1505
-2026-04-01T12:00:06Z,0.5,0.4,0.4,1500
-2026-04-01T12:00:07Z,0.55,0.45,0.45,1495
-2026-04-01T12:00:08Z,0.6,0.5,0.48,1500
-2026-04-01T12:00:09Z,0.65,0.55,0.52,1505`;
+const DEFAULT_CSV = `timestamp,vibration,soundLevel,toolWear,toolHealth,rpm
+2026-04-01T12:00:00Z,0.2,0.1,0.05,,1500
+2026-04-01T12:00:01Z,0.25,0.15,0.08,,1505
+2026-04-01T12:00:02Z,0.3,0.2,0.12,,1510
+2026-04-01T12:00:03Z,0.35,0.25,0.18,,1508
+2026-04-01T12:00:04Z,0.4,0.3,0.25,,1512
+2026-04-01T12:00:05Z,0.45,0.35,0.32,,1505
+2026-04-01T12:00:06Z,0.5,0.4,0.4,,1500
+2026-04-01T12:00:07Z,0.55,0.45,0.45,,1495
+2026-04-01T12:00:08Z,0.6,0.5,0.48,,1500
+2026-04-01T12:00:09Z,0.65,0.55,0.52,,1505
+2026-04-01T12:00:10Z,0.7,0.6,0,,1510`;
 
 const App: React.FC = () => {
   const [dataSource, setDataSource] = useState<'CSV' | 'ThingSpeak'>('CSV');
@@ -33,7 +34,8 @@ const App: React.FC = () => {
       vibration: 'field1',
       soundLevel: 'field2',
       toolWear: 'field3',
-      rpm: 'field4'
+      toolHealth: 'field4',
+      rpm: 'field5'
     }
   });
 

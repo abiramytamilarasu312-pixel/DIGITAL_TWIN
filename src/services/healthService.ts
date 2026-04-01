@@ -4,6 +4,7 @@ export interface TelemetryData {
   vibration: number;
   soundLevel: number;
   toolWear?: number;
+  toolHealth?: number;
   rpm?: number;
   timestamp: string | number;
 }
@@ -20,14 +21,29 @@ const SOUND_BAD = 0.5;
 export const calculateToolHealth = (data: TelemetryData): HealthResult => {
   let health = 100;
 
-  if (data.toolWear !== undefined && data.toolWear !== null) {
-    // Case 1: Tool wear available
-    health = 100 * (1 - (data.toolWear / WEAR_LIMIT));
+  // Prioritize toolHealth if directly provided in telemetry
+  if (data.toolHealth !== undefined && data.toolHealth !== null) {
+    health = data.toolHealth;
   } else {
-    // Case 2: Tool wear NOT available
+    // Case 1: Tool wear available
+    const hasWear = data.toolWear !== undefined && data.toolWear !== null;
+    let wearHealth = 100;
+    if (hasWear) {
+      wearHealth = 100 * (1 - (data.toolWear! / WEAR_LIMIT));
+    }
+
+    // Case 2: Tool wear NOT available (or we need to check vibration/sound for override)
     const vibration_norm = data.vibration / VIBRATION_BAD;
     const sound_norm = data.soundLevel / SOUND_BAD;
-    health = 100 * (1 - (0.6 * vibration_norm + 0.4 * sound_norm));
+    const sensorHealth = 100 * (1 - (0.6 * vibration_norm + 0.4 * sound_norm));
+
+    // CRITICAL FIX: If toolHealth from wear is 100 (e.g. toolWear is 0 or missing),
+    // but vibration/sound sensors indicate degradation, use sensorHealth.
+    if (hasWear && wearHealth < 100) {
+      health = wearHealth;
+    } else {
+      health = sensorHealth;
+    }
   }
 
   // Clamp between 0-100%
