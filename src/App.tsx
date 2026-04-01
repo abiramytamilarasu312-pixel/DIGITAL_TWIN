@@ -27,6 +27,16 @@ const App: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [history, setHistory] = useState<(TelemetryData & HealthResult)[]>([]);
+  const [operationHistory, setOperationHistory] = useState<{
+    id: string;
+    startTime: string;
+    endTime: string;
+    avgHealth: number;
+    finalStatus: string;
+    estimatedTotalWear: number;
+    predictedMaxTime: number;
+    dataPoints: number;
+  }[]>([]);
   const [thingSpeakConfig, setThingSpeakConfig] = useState<ThingSpeakConfig>({
     channelId: '12397', // Example public channel
     readApiKey: '',
@@ -94,12 +104,51 @@ const App: React.FC = () => {
     }
   }, [currentIndex, dataSource, csvData]);
 
+  const stopAndSaveOperation = () => {
+    if (history.length === 0) {
+      setIsPlaying(false);
+      return;
+    }
+
+    const lastPoint = history[history.length - 1];
+    const totalWear = history.reduce((acc, p) => acc + (p.estimatedToolWear || 0), 0);
+    const avgHealth = history.reduce((acc, p) => acc + p.toolHealth, 0) / history.length;
+
+    const newOperation = {
+      id: `OP-${Date.now().toString().slice(-6)}`,
+      startTime: new Date(history[0].timestamp).toISOString(),
+      endTime: new Date(lastPoint.timestamp).toISOString(),
+      avgHealth: parseFloat(avgHealth.toFixed(2)),
+      finalStatus: lastPoint.status,
+      estimatedTotalWear: parseFloat(totalWear.toFixed(5)),
+      predictedMaxTime: lastPoint.predictedMaxTime || 0,
+      dataPoints: history.length
+    };
+
+    setOperationHistory(prev => [newOperation, ...prev]);
+    setIsPlaying(false);
+    
+    // Reset simulation but keep history for display until next start
+    if (dataSource === 'CSV') {
+      setCurrentIndex(0);
+    }
+  };
+
   const processNewData = (data: TelemetryData) => {
-    const result = calculateToolHealth(data);
+    const result = calculateToolHealth(data, history);
+    
     setHistory((prev) => {
       const newHistory = [...prev, { ...data, ...result }];
-      return newHistory.slice(-50); // Keep last 50 points
+      return newHistory.slice(-50); // Keep last 50 points for charts
     });
+
+    // Automatic Stop and Save on CRITICAL status
+    if (result.status === 'CRITICAL' && isPlaying) {
+      setTimeout(() => {
+        stopAndSaveOperation();
+        alert('CRITICAL ALARM: Operation stopped automatically and saved to log.');
+      }, 100);
+    }
   };
 
   const currentPoint = history[history.length - 1] || null;
@@ -111,6 +160,7 @@ const App: React.FC = () => {
       reader.onload = (event) => {
         const content = event.target?.result as string;
         setCsvContent(content);
+        setHistory([]); // Clear history when new file is uploaded
       };
       reader.readAsText(file);
     }
@@ -137,12 +187,26 @@ const App: React.FC = () => {
               {dataSource === 'ThingSpeak' ? 'Live Stream' : isPlaying ? 'Simulating' : 'Paused'}
             </span>
           </div>
-          <button 
-            onClick={() => setIsPlaying(!isPlaying)}
-            className={`p-2 rounded-full transition-colors ${isPlaying ? 'bg-amber-100 text-amber-600 hover:bg-amber-200' : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}`}
-          >
-            {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-          </button>
+          
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setIsPlaying(!isPlaying)}
+              className={`p-2 rounded-full transition-colors ${isPlaying ? 'bg-amber-100 text-amber-600 hover:bg-amber-200' : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}`}
+              title={isPlaying ? 'Pause Simulation' : 'Start Simulation'}
+            >
+              {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+            </button>
+            
+            {isPlaying && (
+              <button 
+                onClick={stopAndSaveOperation}
+                className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors font-bold text-xs uppercase tracking-widest"
+              >
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                Stop Operation
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -285,6 +349,28 @@ const App: React.FC = () => {
                           </p>
                         </div>
                       </div>
+
+                      <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-blue-50 rounded-lg text-blue-600">
+                            <Activity size={14} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Est. Wear Rate</p>
+                            <p className="text-sm font-mono font-bold text-slate-700">{(currentPoint.estimatedToolWear || 0).toFixed(5)} mm/s</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-right">
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Max Op. Time</p>
+                            <p className="text-sm font-mono font-bold text-blue-600">~{currentPoint.predictedMaxTime || 0} min</p>
+                          </div>
+                          <div className="p-1.5 bg-blue-50 rounded-lg text-blue-600">
+                            <RefreshCw size={14} />
+                          </div>
+                        </div>
+                      </div>
                     </motion.div>
                   ) : (
                     <div className="flex items-center gap-3 text-slate-400 italic">
@@ -342,6 +428,58 @@ const App: React.FC = () => {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Operation History Log */}
+          <section className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Operation History</h3>
+              <span className="text-[10px] font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded">Completed Runs</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-slate-400 uppercase text-[10px] font-bold">
+                  <tr>
+                    <th className="px-6 py-3">ID</th>
+                    <th className="px-6 py-3">Start Time</th>
+                    <th className="px-6 py-3">Duration</th>
+                    <th className="px-6 py-3">Avg Health</th>
+                    <th className="px-6 py-3">Est. Total Wear</th>
+                    <th className="px-6 py-3">Max Op. Time</th>
+                    <th className="px-6 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {operationHistory.length > 0 ? (
+                    operationHistory.map((op) => (
+                      <tr key={op.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-3 font-bold text-blue-600">{op.id}</td>
+                        <td className="px-6 py-3 font-mono text-xs">{new Date(op.startTime).toLocaleTimeString()}</td>
+                        <td className="px-6 py-3">{op.dataPoints}s</td>
+                        <td className="px-6 py-3 font-bold">{op.avgHealth}%</td>
+                        <td className="px-6 py-3 font-mono text-blue-600">{op.estimatedTotalWear.toFixed(5)} mm</td>
+                        <td className="px-6 py-3 font-mono">~{op.predictedMaxTime} min</td>
+                        <td className="px-6 py-3">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            op.finalStatus === 'GOOD' ? 'bg-green-100 text-green-700' :
+                            op.finalStatus === 'WARNING' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
+                          }`}>
+                            {op.finalStatus}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-8 text-center text-slate-400 italic">
+                        No operations completed yet.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
