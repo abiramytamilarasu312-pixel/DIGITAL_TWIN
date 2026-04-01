@@ -1,5 +1,5 @@
 {
-  "name": "IoT BASED -TOOL HEALTH_DIGITAL TWIN SIMULATION ",
-  "description": "A comprehensive Digital Twin platform for CNC drilling machines featuring real-time 3D visualization, IoT telemetry monitoring, and AI-driven predictive maintenance (RUL) using Gemini 3 Pro.",
+  "name": "Milling Machine Digital Twin - Tool Health Monitor",
+  "description": "Real-time tool condition monitoring for milling machines using telemetry data from CSV and ThingSpeak.",
   "requestFramePermissions": []
 }
