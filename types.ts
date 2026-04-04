@@ -138,6 +138,11 @@ export interface TwinState {
       width: number;
       height: number;
     };
+    calibration?: {
+      vibrationBaseline: number;
+      soundBaseline: number;
+      wearRateFactor: number;
+    };
   };
   materialTest: MaterialTest;
   manualControl: ManualControlState;

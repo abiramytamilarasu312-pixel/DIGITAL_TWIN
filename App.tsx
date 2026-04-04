@@ -248,28 +248,37 @@ const generatePredictionData = (
   vibrationThreshold: number,
   soundThreshold: number,
   spindleLoadThreshold: number,
-  operationCycleTime: number
+  operationCycleTime: number,
+  calibration?: { vibrationBaseline: number; soundBaseline: number; wearRateFactor: number }
 ): { data: TelemetryData[], estimatedTime: number, exactTimestamp: number, operationsRemaining: number } => {
   const data: TelemetryData[] = [];
   let currentWear = 0;
   let time = 0;
   const startTime = Date.now();
   
-  const baseWearRate = 0.05; 
-  const wearRate = baseWearRate * (feedRate / 200) * depthOfCut * (spindleSpeed / 800) * material.hardnessFactor / toolGrade.durabilityFactor;
+  // Calibrated wear rate calculation
+  const baseWearRate = 0.0015; // mm per second baseline
+  const calibratedWearRate = calibration?.wearRateFactor || 1.0;
   
-  const baseVibration = 0.08 + (spindleSpeed / 4000) * (feedRate / 400);
+  const wearRate = baseWearRate * calibratedWearRate * (feedRate / 200) * (depthOfCut / 1.0) * (spindleSpeed / 800) * material.hardnessFactor / toolGrade.durabilityFactor;
+  
+  // Calibrated baseline vibration and sound
+  // If calibration is provided, we use it as the starting point.
+  // Otherwise, we use a more realistic default for conventional milling.
+  const baseVibration = calibration?.vibrationBaseline || (0.12 + (spindleSpeed / 1000) * (feedRate / 400) + (depthOfCut * 0.15));
+  const baseSound = calibration?.soundBaseline || (baseVibration * 0.45);
 
   while (time < 3600) { 
     const wear = currentWear;
-    const vib = baseVibration * (1 + (wear / 100) * 1.5) + (Math.random() * 0.01);
-    const sound = (vib * 0.4) + (Math.random() * 0.005);
+    // Vibration increases as tool wears
+    const vib = baseVibration * (1 + (wear / 0.5) * 2.0) + (Math.random() * 0.015);
+    const sound = baseSound * (1 + (wear / 0.5) * 1.5) + (Math.random() * 0.008);
     
     // Optimized baseline values (ideal conditions)
     const optVib = baseVibration;
-    const optSound = baseVibration * 0.4;
+    const optSound = baseSound;
 
-    const load = Math.min(100, (feedRate / 400) * depthOfCut * 15 * (1 + wear / 150));
+    const load = Math.min(100, (feedRate / 400) * depthOfCut * 25 * (1 + wear / 0.5));
     
     data.push({
       timestamp: startTime + time * 1000,
@@ -278,22 +287,22 @@ const generatePredictionData = (
       spindleLoad: load,
       vibration: vib,
       vibrationAlert: vib > vibrationThreshold,
-      machineHealth: Math.max(0, 100 - wear),
+      machineHealth: Math.max(0, 100 * (1 - wear / 0.5)), // Health based on 0.5mm wear limit
       soundLevel: sound,
       noiseAlarm: sound > soundThreshold,
       toolWear: wear,
       optimizedVibration: optVib,
       optimizedNoise: optSound,
-      current: (spindleSpeed / 1200) * 4 + (feedRate / 150),
-      powerConsumption: (spindleSpeed / 1200) * 1.5 + (feedRate / 400),
+      current: (spindleSpeed / 1200) * 4 + (feedRate / 150) + (load / 10),
+      powerConsumption: (spindleSpeed / 1200) * 1.5 + (feedRate / 400) + (load / 20),
       forces: {
-        fx: feedRate * depthOfCut * 0.4,
-        fy: feedRate * depthOfCut * 0.2,
-        fz: depthOfCut * 80
+        fx: feedRate * depthOfCut * 0.6 * (1 + wear / 0.5),
+        fy: feedRate * depthOfCut * 0.3 * (1 + wear / 0.5),
+        fz: depthOfCut * 120 * (1 + wear / 0.5)
       }
     });
     
-    if (wear >= wearThreshold || vib >= vibrationThreshold || sound >= soundThreshold || load >= spindleLoadThreshold) {
+    if (wear >= (0.5 * wearThreshold / 100) || vib >= vibrationThreshold || sound >= soundThreshold || load >= spindleLoadThreshold) {
       break;
     }
 
@@ -562,7 +571,11 @@ useEffect(() => {
       
       row.current = row.current ?? 0;
       row.powerConsumption = row.powerConsumption ?? 0;
-      row.machineHealth = row.machineHealth ?? 100;
+      
+      if (row.machineHealth === undefined || row.machineHealth === null || isNaN(row.machineHealth)) {
+        row.machineHealth = Math.max(0, 100 * (1 - row.toolWear / 0.5));
+      }
+      
       row.soundLevel = row.soundLevel ?? 0;
 
       row.vibrationAlert = row.vibration > stateRef.current.config.thresholds.vibrationRms;
@@ -575,13 +588,38 @@ useEffect(() => {
 
     if (stateRef.current.mode === 'PREDICTED_SIMULATION') {
       addNotification('INFO', 'SYSTEM', `Analysis data loaded: ${data.length} points. Updating prediction model.`);
+      
+      // Calculate calibration from CSV
+      const baselinePoints = data.slice(0, Math.min(10, data.length));
+      const vibBaseline = baselinePoints.reduce((acc, p) => acc + p.vibration, 0) / baselinePoints.length;
+      const soundBaseline = baselinePoints.reduce((acc, p) => acc + p.soundLevel, 0) / baselinePoints.length;
+      
+      // Estimate wear rate factor if toolWear is present and changing
+      let wearFactor = 1.0;
+      if (data.length > 20) {
+        const startWear = data[0].toolWear;
+        const endWear = data[data.length - 1].toolWear;
+        const wearDelta = endWear - startWear;
+        if (wearDelta > 0) {
+          // Base wear rate is 0.0015 mm/s. 
+          // CSV is assumed to be 1s per point.
+          const observedWearRate = wearDelta / data.length;
+          wearFactor = observedWearRate / 0.0015;
+        }
+      }
+
       setTwinState(s => ({
         ...s,
         predictedSimulation: {
           ...s.predictedSimulation,
           predictionData: data,
           estimatedTimeToWear: data.length,
-          currentIndex: 0
+          currentIndex: 0,
+          calibration: {
+            vibrationBaseline: vibBaseline,
+            soundBaseline: soundBaseline,
+            wearRateFactor: wearFactor
+          }
         }
       }));
       return;
@@ -609,7 +647,7 @@ useEffect(() => {
 }, [addNotification]);
 
   const startPredictedSimulation = useCallback(() => {
-    const { feedRate, depthOfCut, spindleSpeed, material, toolGrade, wearThreshold, operationCycleTime } = stateRef.current.predictedSimulation;
+    const { feedRate, depthOfCut, spindleSpeed, material, toolGrade, wearThreshold, operationCycleTime, calibration } = stateRef.current.predictedSimulation;
     const { thresholds } = stateRef.current.config;
     
     const { data, estimatedTime, exactTimestamp, operationsRemaining } = generatePredictionData(
@@ -622,7 +660,8 @@ useEffect(() => {
       thresholds.vibrationRms,
       thresholds.soundLimit,
       thresholds.spindleLoadLimit,
-      operationCycleTime
+      operationCycleTime,
+      calibration
     );
 
     setTwinState(s => ({
