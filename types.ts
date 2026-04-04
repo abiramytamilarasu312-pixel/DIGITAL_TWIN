@@ -142,6 +142,17 @@ export interface TwinState {
       vibrationBaseline: number;
       soundBaseline: number;
       wearRateFactor: number;
+      vibrationTrend: number[];
+      soundTrend: number[];
+      wearTrend: number[];
+      healthTrend: number[];
+      metadata?: {
+        rpm?: number;
+        feedRate?: number;
+        depthOfCut?: number;
+        material?: string;
+        toolType?: string;
+      }
     };
   };
   materialTest: MaterialTest;

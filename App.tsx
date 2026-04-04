@@ -249,35 +249,97 @@ const generatePredictionData = (
   soundThreshold: number,
   spindleLoadThreshold: number,
   operationCycleTime: number,
-  calibration?: { vibrationBaseline: number; soundBaseline: number; wearRateFactor: number }
+  calibration?: { 
+    vibrationBaseline: number; 
+    soundBaseline: number; 
+    wearRateFactor: number;
+    vibrationTrend: number[];
+    soundTrend: number[];
+    wearTrend: number[];
+    healthTrend: number[];
+    metadata?: { rpm?: number; feedRate?: number; depthOfCut?: number; material?: string; toolType?: string; }
+  }
 ): { data: TelemetryData[], estimatedTime: number, exactTimestamp: number, operationsRemaining: number } => {
   const data: TelemetryData[] = [];
-  let currentWear = 0;
-  let time = 0;
   const startTime = Date.now();
   
-  // Calibrated wear rate calculation
-  const baseWearRate = 0.0015; // mm per second baseline
-  const calibratedWearRate = calibration?.wearRateFactor || 1.0;
+  // Scaling factors based on parameter differences between current simulation and CSV calibration
+  let rpmScale = 1.0;
+  let feedScale = 1.0;
+  let docScale = 1.0;
   
+  if (calibration?.metadata) {
+    if (calibration.metadata.rpm) rpmScale = spindleSpeed / calibration.metadata.rpm;
+    if (calibration.metadata.feedRate) feedScale = feedRate / calibration.metadata.feedRate;
+    // depthOfCut metadata might not be in CSV, fallback to 1.0 if missing
+    if (calibration.metadata.depthOfCut) docScale = depthOfCut / calibration.metadata.depthOfCut;
+  }
+
+  // If we have trends from CSV, use them as the primary reference (Truth Reference)
+  if (calibration?.vibrationTrend && calibration.vibrationTrend.length > 0) {
+    const trendLength = calibration.vibrationTrend.length;
+    
+    for (let i = 0; i < trendLength; i++) {
+      const time = i;
+      
+      // Reproduce the CSV pattern, scaled by current parameters
+      // Vibration and sound magnitude are typically proportional to speed and feed
+      const vib = calibration.vibrationTrend[i] * rpmScale * feedScale * docScale;
+      const sound = calibration.soundTrend[i] * rpmScale * feedScale * docScale;
+      const wear = calibration.wearTrend[i] * rpmScale * feedScale * docScale;
+      const health = calibration.healthTrend[i]; // Health is a percentage, usually remains consistent in trend
+
+      const load = Math.min(100, (feedRate / 400) * depthOfCut * 25 * (1 + wear / 0.5));
+      
+      data.push({
+        timestamp: startTime + time * 1000,
+        rpm: spindleSpeed,
+        feedRate: feedRate,
+        spindleLoad: load,
+        vibration: vib,
+        vibrationAlert: vib > vibrationThreshold,
+        machineHealth: health,
+        soundLevel: sound,
+        noiseAlarm: sound > soundThreshold,
+        toolWear: wear,
+        optimizedVibration: calibration.vibrationBaseline * rpmScale * feedScale * docScale,
+        optimizedNoise: calibration.soundBaseline * rpmScale * feedScale * docScale,
+        current: (spindleSpeed / 1200) * 4 + (feedRate / 150) + (load / 10),
+        powerConsumption: (spindleSpeed / 1200) * 1.5 + (feedRate / 400) + (load / 20),
+        forces: {
+          fx: feedRate * depthOfCut * 0.6 * (1 + wear / 0.5),
+          fy: feedRate * depthOfCut * 0.3 * (1 + wear / 0.5),
+          fz: depthOfCut * 120 * (1 + wear / 0.5)
+        }
+      });
+      
+      // Stop simulation if thresholds are hit (same logic as synthetic)
+      if (wear >= (0.5 * wearThreshold / 100) || vib >= vibrationThreshold || sound >= soundThreshold || load >= spindleLoadThreshold) {
+        break;
+      }
+    }
+    
+    const time = data.length;
+    const exactTimestamp = startTime + time * 1000;
+    const operationsRemaining = Math.floor(time / Math.max(1, operationCycleTime));
+    
+    return { data, estimatedTime: time, exactTimestamp, operationsRemaining };
+  }
+
+  // Fallback to synthetic physics-based simulation if no CSV calibration exists
+  let currentWear = 0;
+  let time = 0;
+  const baseWearRate = 0.0015; 
+  const calibratedWearRate = calibration?.wearRateFactor || 1.0;
   const wearRate = baseWearRate * calibratedWearRate * (feedRate / 200) * (depthOfCut / 1.0) * (spindleSpeed / 800) * material.hardnessFactor / toolGrade.durabilityFactor;
   
-  // Calibrated baseline vibration and sound
-  // If calibration is provided, we use it as the starting point.
-  // Otherwise, we use a more realistic default for conventional milling.
   const baseVibration = calibration?.vibrationBaseline || (0.12 + (spindleSpeed / 1000) * (feedRate / 400) + (depthOfCut * 0.15));
   const baseSound = calibration?.soundBaseline || (baseVibration * 0.45);
 
   while (time < 3600) { 
     const wear = currentWear;
-    // Vibration increases as tool wears
     const vib = baseVibration * (1 + (wear / 0.5) * 2.0) + (Math.random() * 0.015);
     const sound = baseSound * (1 + (wear / 0.5) * 1.5) + (Math.random() * 0.008);
-    
-    // Optimized baseline values (ideal conditions)
-    const optVib = baseVibration;
-    const optSound = baseSound;
-
     const load = Math.min(100, (feedRate / 400) * depthOfCut * 25 * (1 + wear / 0.5));
     
     data.push({
@@ -287,12 +349,12 @@ const generatePredictionData = (
       spindleLoad: load,
       vibration: vib,
       vibrationAlert: vib > vibrationThreshold,
-      machineHealth: Math.max(0, 100 * (1 - wear / 0.5)), // Health based on 0.5mm wear limit
+      machineHealth: Math.max(0, 100 * (1 - wear / 0.5)),
       soundLevel: sound,
       noiseAlarm: sound > soundThreshold,
       toolWear: wear,
-      optimizedVibration: optVib,
-      optimizedNoise: optSound,
+      optimizedVibration: baseVibration,
+      optimizedNoise: baseSound,
       current: (spindleSpeed / 1200) * 4 + (feedRate / 150) + (load / 10),
       powerConsumption: (spindleSpeed / 1200) * 1.5 + (feedRate / 400) + (load / 20),
       forces: {
@@ -586,28 +648,47 @@ useEffect(() => {
       return row as TelemetryData;
     });
 
-    if (stateRef.current.mode === 'PREDICTED_SIMULATION') {
-      addNotification('INFO', 'SYSTEM', `Analysis data loaded: ${data.length} points. Updating prediction model.`);
-      
-      // Calculate calibration from CSV
-      const baselinePoints = data.slice(0, Math.min(10, data.length));
-      const vibBaseline = baselinePoints.reduce((acc, p) => acc + p.vibration, 0) / baselinePoints.length;
-      const soundBaseline = baselinePoints.reduce((acc, p) => acc + p.soundLevel, 0) / baselinePoints.length;
-      
-      // Estimate wear rate factor if toolWear is present and changing
-      let wearFactor = 1.0;
-      if (data.length > 20) {
-        const startWear = data[0].toolWear;
-        const endWear = data[data.length - 1].toolWear;
-        const wearDelta = endWear - startWear;
-        if (wearDelta > 0) {
-          // Base wear rate is 0.0015 mm/s. 
-          // CSV is assumed to be 1s per point.
-          const observedWearRate = wearDelta / data.length;
-          wearFactor = observedWearRate / 0.0015;
-        }
+    // Always extract calibration from CSV for Prediction Simulation
+    const baselinePoints = data.slice(0, Math.min(20, data.length));
+    const vibBaseline = baselinePoints.reduce((acc, p) => acc + p.vibration, 0) / baselinePoints.length;
+    const soundBaseline = baselinePoints.reduce((acc, p) => acc + p.soundLevel, 0) / baselinePoints.length;
+    
+    const vibrationTrend = data.map(p => p.vibration);
+    const soundTrend = data.map(p => p.soundLevel);
+    const wearTrend = data.map(p => p.toolWear);
+    const healthTrend = data.map(p => p.machineHealth);
+    
+    const avgRpm = data.reduce((acc, p) => acc + (p.rpm || 0), 0) / data.length;
+    const avgFeed = data.reduce((acc, p) => acc + (p.feedRate || 0), 0) / data.length;
+    
+    let wearFactor = 1.0;
+    if (data.length > 20) {
+      const startWear = data[0].toolWear;
+      const endWear = data[data.length - 1].toolWear;
+      const wearDelta = endWear - startWear;
+      if (wearDelta > 0) {
+        const observedWearRate = wearDelta / data.length;
+        wearFactor = observedWearRate / 0.0015;
       }
+    }
 
+    const calibration = {
+      vibrationBaseline: vibBaseline,
+      soundBaseline: soundBaseline,
+      wearRateFactor: wearFactor,
+      vibrationTrend,
+      soundTrend,
+      wearTrend,
+      healthTrend,
+      metadata: {
+        rpm: avgRpm > 0 ? avgRpm : undefined,
+        feedRate: avgFeed > 0 ? avgFeed : undefined
+      }
+    };
+
+    if (stateRef.current.mode === 'PREDICTED_SIMULATION') {
+      addNotification('INFO', 'SYSTEM', `Analysis data loaded: ${data.length} points. Calibrating prediction model.`);
+      
       setTwinState(s => ({
         ...s,
         predictedSimulation: {
@@ -615,17 +696,13 @@ useEffect(() => {
           predictionData: data,
           estimatedTimeToWear: data.length,
           currentIndex: 0,
-          calibration: {
-            vibrationBaseline: vibBaseline,
-            soundBaseline: soundBaseline,
-            wearRateFactor: wearFactor
-          }
+          calibration
         }
       }));
       return;
     }
 
-    addNotification('INFO', 'SYSTEM', `CSV loaded: ${data.length} rows. Offline CSV mode ready.`);
+    addNotification('INFO', 'SYSTEM', `CSV loaded: ${data.length} rows. Prediction model calibrated.`);
 
     setTwinState(s => ({
       ...s,
@@ -637,6 +714,10 @@ useEffect(() => {
         data,
         currentIndex: 0,
         fileName: file.name
+      },
+      predictedSimulation: {
+        ...s.predictedSimulation,
+        calibration
       }
     }));
 
