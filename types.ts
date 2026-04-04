@@ -146,6 +146,7 @@ export interface TwinState {
       soundTrend: number[];
       wearTrend: number[];
       healthTrend: number[];
+      fullTrend?: TelemetryData[];
       metadata?: {
         rpm?: number;
         feedRate?: number;
